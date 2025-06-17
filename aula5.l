@@ -1,11 +1,12 @@
 %{
- 	#include <string.h>
+#include <string.h>
+
 %}
 
 /* Expressões Regulares */
 NUM [0-9]+\.?[0-9]*
 TEXTO [A-Za-z] 
-VARS [a-z]+[0-9]*
+VAR [a-z]+[0-9]*
 DECL "var"
 PRINT "PRINT"
 INICIO "INICIO"
@@ -34,17 +35,17 @@ SCANS "SCANS"
 {VAR} {
 	strcpy(yylval.str,yytext);
 	return VAR;
-	}
+}
 
 {NUM} {
 	yylval.flo = atof(yytext);
 	return NUM;
-	}
+}
 
 {TEXTO} {
 	strcpy(yylval.str,yytext);
 	return TEXTO;
-	}
+}
 
 \"([^\"\\]|\\.)*\"  { 
 	strncpy(yylval.str, yytext + 1, sizeof(yylval.str) - 1); 
@@ -52,8 +53,7 @@ SCANS "SCANS"
 	return STRING; 
 }
 
-[-+()=/*^{};\[\]] {return *yytext;}
-			
+[-+()=/*^{};\[\],] {return *yytext;}
 
 ">"  {yylval.fn = 1; return CMP; }
 "<"  {yylval.fn = 2; return CMP; }
@@ -66,7 +66,6 @@ SCANS "SCANS"
 "!=" {yylval.fn = 9; return CMP; }
 
 "." {yylval.fn = 10; return SIMB; }
-"," {yylval.fn = 11; return SIMB; }
 "#" {yylval.fn = 12; return SIMB; }
 ":" {yylval.fn = 13; return SIMB; }
 "?" {yylval.fn = 14; return SIMB; }
@@ -74,8 +73,5 @@ SCANS "SCANS"
 "%" {yylval.fn = 16; return SIMB; }
 
 [\ \n\t]*	{;}
-. {printf("(%s) Ingonrado\n",yytext);}
 
 %%
-
-
