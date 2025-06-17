@@ -22,3 +22,59 @@ ELSE{
 	
 FIM
 
+
+
+INICIO
+
+x = 10
+y = 20.5
+z = x + y
+
+PRINT(z)
+PRINT("Resultado da soma")
+
+IF (x > 5) {
+    PRINT("x eh maior que 5")
+    PRINT(x)
+}
+
+IF (y < 100) {
+    PRINT("y eh menor que 100")
+} ELSE {
+    PRINT("y eh maior ou igual a 100")
+}
+
+contador = 1
+WHILE (contador <= 3) {
+    PRINT("Contador:")
+    PRINT(contador)
+    contador = contador + 1
+}
+
+resultado = (x * 2) + (y / 2)
+PRINT("Resultado da expressao complexa:")
+PRINT(resultado)
+
+teste1 = 15
+teste2 = 15
+IF (teste1 == teste2) {
+    PRINT("Numeros sao iguais")
+}
+
+IF (teste1 >= 10) {
+    PRINT("teste1 eh maior ou igual a 10")
+}
+
+IF (teste1 != 20) {
+    PRINT("teste1 eh diferente de 20")
+}
+
+valor_negativo = -25
+PRINT("Valor negativo:")
+PRINT(valor_negativo)
+
+expressao = 10 + 5 * 2 - 3 / 1
+PRINT("Resultado da expressao matematica:")
+PRINT(expressao)
+
+FIM
