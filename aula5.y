@@ -9,7 +9,7 @@ void yyerror(char *s) {
     printf("Erro: %s\n", s);
 }
 
-typedef enum { INT, FLOAT, STRING,VETOR} Tipo_vars;
+typedef enum { Tipo_int, Tipo_float, Tipo_String,VETOR} Tipo_vars;
 
 typedef struct vars {
     char name[50];
@@ -29,7 +29,7 @@ typedef struct vars {
 VARS *ins_float(VARS *l, char n[], float v) {
     VARS *new = malloc(sizeof(VARS));
     strcpy(new->name, n);
-    new->tipo = FLOAT;
+    new->tipo = Tipo_float;
     new->valor.flo = v;
     new->prox = l;
     return new;
@@ -38,7 +38,7 @@ VARS *ins_float(VARS *l, char n[], float v) {
 VARS *ins_int(VARS *l, char n[], int v) {
     VARS *new = malloc(sizeof(VARS));
     strcpy(new->name, n);
-    new->tipo = INT;
+    new->tipo = Tipo_inteiro;
     new->valor.inter = v;
     new->prox = l;
     return new;
@@ -47,7 +47,7 @@ VARS *ins_int(VARS *l, char n[], int v) {
 VARS *ins_string(VARS *l, char n[], char v[]) {
     VARS *new = malloc(sizeof(VARS));
     strcpy(new->name, n);
-    new->tipo = STRING;
+    new->tipo = Tipo_String;
     strncpy(new->valor.str, v, sizeof(new->valor.str)-1);
     new->prox = l;
     return new;
@@ -56,14 +56,14 @@ VARS *ins_string(VARS *l, char n[], char v[]) {
 VARS *ins_vetor(VARS *l, char n[], int tamanho) {
     VARS *new = malloc(sizeof(VARS));
     if (!new) {
-        perror("malloc failed");
+        perror("malloc erro");
         exit(EXIT_FAILURE);
     }
     strcpy(new->name, n);
     new->tipo = VETOR;
     new->valor.vetor.vet = malloc(tamanho * sizeof(double));
     if (!new->valor.vetor.vet) {
-        perror("malloc failed");
+        perror("malloc erro");
         free(new);
         exit(EXIT_FAILURE);
     }
@@ -97,7 +97,7 @@ void free_vars(VARS *l) {
 
 // acessar o vetor
 
-VARS *v = srch(lista, "nomeDoVetor");
+VARS *v = srch(lista, "nome_Vetor");
 if (v && v->tipo == VETOR) {
     for (int i = 0; i < v->valor.vetor.tamanho; i++) {
         printf("%f ", v->valor.vetor.vet[i]);
@@ -150,8 +150,8 @@ typedef struct symasgn { /*Estrutura para um nó de atribuição. Para atrubior 
 }Symasgn;
 
 
-VARI *l1; /*Variáveis*/
-VARI *aux;
+VARS *l1; /*Variáveis*/
+VARS *aux;
 
 Ast * newast(int nodetype, Ast *l, Ast *r){ /*Função para criar um nó*/
 
@@ -302,7 +302,7 @@ Ast * newValorValS(char s[50]) { /*Função que recupera o nome/referência de u
 }
 	
 char * eval2(Ast *a) { /*Função que executa operações a partir de um nó*/
-		VARI *aux1;
+		VARS *aux1;
 		char *v2;
 		
 			switch(a->nodetype) {
@@ -324,7 +324,7 @@ double eval(Ast *a) { /*Função que executa operações a partir de um nó*/
 	double v; 
 	char v1[50];
 	char *v2;
-	VARI * aux1;
+	VARS * aux1;
 	if(!a) {
 		printf("internal error, null eval");
 		return 0.0;
@@ -355,24 +355,18 @@ double eval(Ast *a) { /*Função que executa operações a partir de um nó*/
 		case '5': v = (eval(a->l) >= eval(a->r))? 1 : 0; break;
 		case '6': v = (eval(a->l) <= eval(a->r))? 1 : 0; break;
 
-		case '10': v = (eval(a->l) . eval(a->r))? 1 : 0; break;	/*Simbolos ainda preciso ver se é isso mesmo*/
-		case '11': v = (eval(a->l) , eval(a->r))? 1 : 0; break;
-		case '12': v = (eval(a->l) # eval(a->r))? 1 : 0; break;
-		case '13': v = (eval(a->l) : eval(a->r))? 1 : 0; break;
-		case '14': v = (eval(a->l) ? eval(a->r))? 1 : 0; break;
-		case '15': v = (eval(a->l) ! eval(a->r))? 1 : 0; break;
-		case '16': v = (eval(a->l) % eval(a->r))? 1 : 0; break;
-		
 		case '=':
 			v = eval(((Symasgn *)a)->v); /*Recupera o valor*/
 			aux = srch(l1,((Symasgn *)a)->s);
 			
 			//printf ("AQUI %d\n",((Varval *)aux)->nodetype);
 			
-			if(aux->nodetype == 1){ //lembrar de verificar os demais tipos
-				aux->valor = v;
-				//printf ("%lf\n",v);
+			if (aux->tipo == INT || aux->tipo == FLOAT) {
+    			aux->valor.flo = v; // ou valor.inter se for int
+			}else if (aux->tipo == VETOR) {
+    			aux->valor.vetor.vet[((Symasgn *)a)->pos] = v;
 			}
+
 			else
 				aux->vet[((Symasgn *)a)->pos] = v; //inserção no vetor
 			break;
@@ -441,72 +435,62 @@ double eval(Ast *a) { /*Função que executa operações a partir de um nó*/
     float flo;
     char str[50];
     int fn;
+    struct ast *a;  
 }
 
+%type <a> prog stmt list exp funcao
+
 %token <flo> NUM
-%token <str> VARS TEXTO STRING
-%token <inter> INT
-%token <flo> FLOAT
+%token <str> VAR TEXTO Tipo_String
+%token <inter> Tipo_int
+%token <flo> Tipo_float
 %token <fn> CMP SIMB
 
-%token INI FIM IF ELSE WHILE PRINT DECL SCAN PRINTT SCANS
+%token INICIO FIM IF ELSE WHILE PRINT DECL SCAN PRINTT SCANS
 
 %right '='
 %left '+' '-'
 %left '*' '/'
 %left '^'
 %precedence NEG
+%nonassoc IFX
 
 %%
 
-prog:  INICIO cod FIM;
+val: INICIO prog FIM
+	;
 
-cod: stmt {eval($1);}  /*Inicia e execução da árvore de derivação*/
-    | cod stmt {eval($2);}	 /*Inicia e execução da árvore de derivação*/
+prog: stmt 		{eval($1);}  /*Inicia e execução da árvore de derivação*/
+	| prog stmt {eval($2);}	 /*Inicia e execução da árvore de derivação*/
 	;
 	
 /*Funções para análise sintática e criação dos nós na AST*/	
 /*Verifique q nenhuma operação é realizada na ação semântica, apenas são criados nós na árvore de derivação com suas respectivas operações*/
 	
-stmt: IF '(' exp ')' '{' list '}' %prec IFX {$$ = newflow('I', $3, $6, NULL);}
-	| IF '(' exp ')' '{' list '}' ELSE '{' list '}' {$$ = newflow('I', $3, $6, $10);}
-	| WHILE '(' exp ')' '{' list '}' {$$ = newflow('W', $3, $6, NULL);}
+//Adpatar o código e adicionar a dclaração das variáveis	
+cmdos: PRINT '('funcao')'
+	 | SCAN '('VARS')'{
+		printf("Entrada '%c: ", $3+'a');
+		scanf("%f", &vars[$3]) // prescisa puxar esse negócio da lista 
+	 }
+	 | VARS '=' exp{vars[$1] = $3;};
 
-	| VARS '=' exp %prec VARPREC { $$ = newasgn($1,$3);}
-	| VARS '['NUM']' '=' exp {$$ = newasgn_a($1,$6,$3);}
-
-	| DECL VARS	 %prec DECLPREC { $$ = newvari('V',$2);}
-	| DECL VARS '['NUM']'	{ $$ = newarray('a',$2,$4);}
-	
-	| PRINT '(' exp ')' 	{$$ = newast('P',$3,NULL);}
-	| PRINTT '(' exp1 ')' 	{$$ = newast('Y',$3,NULL);}
-	| SCAN '('VARS')'		{$$ = newvari('S',$3);}
-	| SCANS '('VARS')'		{$$ = newvari('T',$3);}
-	;
-
-list: stmt {$$ = $1;}
-		| list stmt { $$ = newast('L', $1, $2);	}
-		;	
+funcao: STRING {printf("%s\n",$1); free($1);} "," funcao
+		| exp "," funcao {printf("%2.f\n",$1);}
+		|STRING {printf("%s\n",$1); free($1);}
+		|exp {printf("Saida: %2.f\n",$1);}
 
 stmt: IF '(' exp ')' '{' list '}' %prec IFX {$$ = newflow('I', $3, $6, NULL);}
 	| IF '(' exp ')' '{' list '}' ELSE '{' list '}' {$$ = newflow('I', $3, $6, $10);}
 	| WHILE '(' exp ')' '{' list '}' {$$ = newflow('W', $3, $6, NULL);}
-
-	| VARS '=' exp %prec VARPREC { $$ = newasgn($1,$3);}
-	| VARS '['NUM']' '=' exp {$$ = newasgn_a($1,$6,$3);}
-
-	| DECL VARS	 %prec DECLPREC { $$ = newvari('V',$2);}
-	| DECL VARS '['NUM']'	{ $$ = newarray('a',$2,$4);}
-	
-	| PRINT '(' exp ')' 	{$$ = newast('P',$3,NULL);}
-	| PRINTT '(' exp1 ')' 	{$$ = newast('Y',$3,NULL);}
-	| SCAN '('VARS')'		{$$ = newvari('S',$3);}
-	| SCANS '('VARS')'		{$$ = newvari('T',$3);}
+	| VARS '=' exp {$$ = newasgn($1,$3);}
+	| PRINT '(' exp ')' { $$ = newast('P',$3,NULL);}
 	;
 
-list: stmt {$$ = $1;}
+list:	  stmt{$$ = $1;}
 		| list stmt { $$ = newast('L', $1, $2);	}
-		;	
+		;
+	
 exp: 
 	 exp '+' exp {$$ = newast('+',$1,$3);}		/*Expressões matemáticas*/
 	|exp '-' exp {$$ = newast('-',$1,$3);}
@@ -515,14 +499,9 @@ exp:
 	|exp CMP exp {$$ = newcmp($2,$1,$3);}		/*Testes condicionais*/
 	|'(' exp ')' {$$ = $2;}
 	|'-' exp %prec NEG {$$ = newast('M',$2,NULL);}
-	|NUM 	{$$ = newnum($1);}						/*token de um número*/
-	
-	|VARS 	%prec VET {$$ = newValorVal($1);}		/*token de uma variável*/
-	|VARS '['NUM']' {$$ = newValorVal_a($1,$3);}				/*token de uma variável*/
-	;
+	|NUM {$$ = newnum($1);}						/*token de um número*/
+	|VARS {$$ = newValorVal($1);}				/*token de uma variável*/
 
-exp1: 
-	VARS {$$ = newValorValS($1);}				
 	;
 %%
 #include "lex.yy.c"

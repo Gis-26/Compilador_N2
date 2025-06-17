@@ -5,10 +5,10 @@
 /* Expressões Regulares */
 NUM [0-9]+\.?[0-9]*
 TEXTO [A-Za-z] 
-VAR [a-z]+[0-9]*
+VARS [a-z]+[0-9]*
 DECL "var"
 PRINT "PRINT"
-INI "INICIO"
+INICIO "INICIO"
 FIM "FIM"
 SCAN "SCAN"
 IF "IF"
@@ -21,7 +21,7 @@ SCANS "SCANS"
 %%
 
 {FIM} {return FIM;}
-{INI} {return INICIO;}
+{INICIO} {return INICIO;}
 {IF} {return IF;}
 {ELSE} {return ELSE;}
 {WHILE} {return WHILE;}
@@ -31,9 +31,9 @@ SCANS "SCANS"
 {SCANS} {return SCANS;}
 {DECL} {return DECL;}
 
-{VARS} {
+{VAR} {
 	strcpy(yylval.str,yytext);
-	return VARS;
+	return VAR;
 	}
 
 {NUM} {
