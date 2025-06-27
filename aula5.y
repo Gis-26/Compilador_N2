@@ -1,511 +1,430 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <math.h>
+#include <string.h>	
 
-int yylex();
-void yyerror(char *s) {
-    printf("Erro: %s\n", s);
-}
-
-typedef enum { TIPO_INT, TIPO_FLOAT, TIPO_STRING, VETOR} Tipo_vars;
-
+// nodetype variables
+// 1 - int
+// 2 - float
+// 3 - string
+// 4 - int array
+// 5 - float array
+	
 typedef struct vars {
+    int nodetype;
     char name[50];
-    Tipo_vars tipo;
     union {
-        int inter;
-        float flo;
-        char str[50];
-        struct {
-            double *vet;
-            int tamanho;
-        } vetor;
-    } valor;
+        int ival;
+        double fval;
+        char sval[100];
+        int *iarr;
+        double *farr;
+    } value;
+    int arr_size;
     struct vars *prox;
-} VARS;
-
-VARS *ins_float(VARS *l, char n[], float v) {
-    VARS *new = malloc(sizeof(VARS));
+} VARI;
+	
+VARI *ins(VARI *l, char n[], int type) {
+    VARI *new = (VARI*)malloc(sizeof(VARI));
     strcpy(new->name, n);
-    new->tipo = TIPO_FLOAT;
-    new->valor.flo = v;
+    new->nodetype = type;
     new->prox = l;
     return new;
 }
-
-VARS *ins_int(VARS *l, char n[], int v) {
-    VARS *new = malloc(sizeof(VARS));
+	
+VARI *ins_array(VARI *l, char n[], int type, int size) {
+    VARI *new = (VARI*)malloc(sizeof(VARI));
     strcpy(new->name, n);
-    new->tipo = TIPO_INT;
-    new->valor.inter = v;
+    new->nodetype = type + 3; // 4 for int array, 5 for float array
+    new->arr_size = size;
+    if (type == 1) // int array
+        new->value.iarr = (int*)malloc(size * sizeof(int));
+    else // float array
+        new->value.farr = (double*)malloc(size * sizeof(double));
     new->prox = l;
     return new;
 }
-
-VARS *ins_string(VARS *l, char n[], char v[]) {
-    VARS *new = malloc(sizeof(VARS));
-    strcpy(new->name, n);
-    new->tipo = TIPO_STRING;
-    strncpy(new->valor.str, v, sizeof(new->valor.str)-1);
-    new->valor.str[sizeof(new->valor.str)-1] = '\0';
-    new->prox = l;
-    return new;
-}
-
-VARS *ins_vetor(VARS *l, char n[], int tamanho) {
-    VARS *new = malloc(sizeof(VARS));
-    if (!new) {
-        perror("malloc erro");
-        exit(EXIT_FAILURE);
-    }
-    strcpy(new->name, n);
-    new->tipo = VETOR;
-    new->valor.vetor.vet = malloc(tamanho * sizeof(double));
-    if (!new->valor.vetor.vet) {
-        perror("malloc erro");
-        free(new);
-        exit(EXIT_FAILURE);
-    }
-    new->valor.vetor.tamanho = tamanho;
-    new->prox = l;
-    return new;
-}
-
-// buscar variavel na lista de variaveis
-VARS *srch(VARS *l, char n[]) {
-    VARS *aux = l;
+	
+VARI *srch(VARI *l, char n[]) {
+    VARI *aux = l;
     while (aux != NULL) {
         if (strcmp(n, aux->name) == 0)
             return aux;
         aux = aux->prox;
     }
-    return NULL;  
-}
-
-//liberar o vetor e a lista de variaveis
-void free_vars(VARS *l) {
-    while (l) {
-        VARS *temp = l;
-        l = l->prox;
-        if (temp->tipo == VETOR) free(temp->valor.vetor.vet);
-        free(temp);
-    }
+    return NULL;
 }
 
 typedef struct ast {
-	int nodetype;
-	struct ast *l;
-	struct ast *r;
-}Ast; 
+    int nodetype;
+    struct ast *l;
+    struct ast *r;
+} Ast;
 
 typedef struct numval {
-	int nodetype;
-	double number;
-}Numval;
+    int nodetype;
+    union {
+        int ival;
+        double fval;
+    } value;
+} Numval;
+
+typedef struct strval {
+    int nodetype;
+    char sval[100];
+} Strval;
 
 typedef struct varval {
-	int nodetype;
-	char var[50];
-	int size;
-}Varval;
-	
-typedef struct texto {
-	int nodetype;
-	char txt[50];
-}TXT;	
-	
+    int nodetype;
+    char var[50];
+    int index; // for arrays
+} Varval;
+
 typedef struct flow {
-	int nodetype;
-	Ast *cond;
-	Ast *tl;
-	Ast *el;
-}Flow;
+    int nodetype;
+    Ast *cond;
+    Ast *tl;
+    Ast *el;
+} Flow;
 
 typedef struct symasgn {
-	int nodetype;
-	char s[50];
-	Ast *v;
-	int pos;
-}Symasgn;
+    int nodetype;
+    char s[50];
+    Ast *v;
+    int index;
+    int type; // 1 for int, 2 for float, 3 for string
+} Symasgn;
 
-VARS *l1 = NULL;
-VARS *aux;
+typedef struct decl {
+    int nodetype;
+    char s[50];
+    int type; // 1 for int, 2 for float, 3 for string
+    int arr_size; // 0 for non-array
+} Decl;
 
-Ast * newast(int nodetype, Ast *l, Ast *r){
-	Ast *a = (Ast*) malloc(sizeof(Ast));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = nodetype;
-	a->l = l;
-	a->r = r;
-	return a;
-}
- 
-Ast * newvari(int nodetype, char nome[50]) {
-	Varval *a = (Varval*) malloc(sizeof(Varval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = nodetype;
-	strcpy(a->var,nome);
-	return (Ast*)a;
+VARI *l1 = NULL;
+
+Ast *newast(int nodetype, Ast *l, Ast *r) {
+    Ast *a = (Ast*)malloc(sizeof(Ast));
+    a->nodetype = nodetype;
+    a->l = l;
+    a->r = r;
+    return a;
 }
 
-Ast * newarray(int nodetype, char nome[50], int tam) {
-	Varval *a = (Varval*) malloc(sizeof(Varval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = nodetype;
-	strcpy(a->var,nome);
-	a->size = tam;
-	return (Ast*)a;
-}	
-	
-Ast * newtext(int nodetype, char txt[500]) {
-	TXT *a = (TXT*) malloc(sizeof(TXT));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = nodetype;
-	strncpy(a->txt, txt, sizeof(a->txt)-1);
-	a->txt[sizeof(a->txt)-1] = '\0';
-	return (Ast*)a;
-}	
-	
-Ast * newnum(double d) {
-	Numval *a = (Numval*) malloc(sizeof(Numval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = 'K';
-	a->number = d;
-	return (Ast*)a;
-}	
-	
-Ast * newflow(int nodetype, Ast *cond, Ast *tl, Ast *el){
-	Flow *a = (Flow*)malloc(sizeof(Flow));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = nodetype;
-	a->cond = cond;
-	a->tl = tl;
-	a->el = el;
-	return (Ast *)a;
+Ast *newnum_int(int d) {
+    Numval *a = (Numval*)malloc(sizeof(Numval));
+    a->nodetype = 'I';
+    a->value.ival = d;
+    return (Ast*)a;
 }
 
-Ast * newcmp(int cmptype, Ast *l, Ast *r){
-	Ast *a = (Ast*)malloc(sizeof(Ast));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = '0' + cmptype;
-	a->l = l;
-	a->r = r;
-	return a;
+Ast *newnum_float(double d) {
+    Numval *a = (Numval*)malloc(sizeof(Numval));
+    a->nodetype = 'F';
+    a->value.fval = d;
+    return (Ast*)a;
 }
 
-Ast * newasgn(char s[50], Ast *v) {
-	Symasgn *a = (Symasgn*)malloc(sizeof(Symasgn));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = '=';
-	strcpy(a->s,s);
-	a->v = v;
-	a->pos = 0;
-	return (Ast *)a;
+Ast *newstr(char *s) {
+    Strval *a = (Strval*)malloc(sizeof(Strval));
+    a->nodetype = 'S';
+    strcpy(a->sval, s);
+    return (Ast*)a;
 }
 
-Ast * newasgn_a(char s[50], Ast *v, int indice) {
-	Symasgn *a = (Symasgn*)malloc(sizeof(Symasgn));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = '=';
-	strcpy(a->s,s);
-	a->v = v;
-	a->pos = indice;
-	return (Ast *)a;
-}
-	
-Ast * newValorVal(char s[]) {
-	Varval *a = (Varval*) malloc(sizeof(Varval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = 'N';
-	strcpy(a->var,s);
-	a->size = 0;
-	return (Ast*)a;
-}
-	
-Ast * newValorVal_a(char s[], int indice) {
-	Varval *a = (Varval*) malloc(sizeof(Varval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = 'n';
-	strcpy(a->var,s);
-	a->size = indice;
-	return (Ast*)a;
-}	
-
-Ast * newValorValS(char s[50]) {
-	Varval *a = (Varval*) malloc(sizeof(Varval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = 'Q';
-	strcpy(a->var,s);
-	a->size = 0;
-	return (Ast*)a;
-}
-	
-char * eval2(Ast *a) {
-	VARS *aux1;
-	char *v2 = NULL;
-	
-	switch(a->nodetype) {
-		case 'Q':
-			aux1 = srch(l1,((Varval *)a)->var);
-			if(aux1 && aux1->tipo == TIPO_STRING)
-				return aux1->valor.str;
-			break;
-		default: 
-			printf("internal error: bad node %c\n", a->nodetype);
-			break;
-	}
-	return v2;
+Ast *newvar(char *name) {
+    Varval *a = (Varval*)malloc(sizeof(Varval));
+    a->nodetype = 'V';
+    strcpy(a->var, name);
+    a->index = -1;
+    return (Ast*)a;
 }
 
-double eval(Ast *a) {
-	double v = 0.0; 
-	char v1[50];
-	char *v2;
-	VARS * aux1;
-	
-	if(!a) {
-		printf("internal error, null eval");
-		return 0.0;
-	}
-	
-	switch(a->nodetype) {
-		case 'K': 
-			v = ((Numval *)a)->number; 
-			break;
-			
-		case 'N': 
-			aux1 = srch(l1,((Varval *)a)->var);
-			if(aux1) {
-				if(aux1->tipo == TIPO_INT)
-					v = aux1->valor.inter;
-				else if(aux1->tipo == TIPO_FLOAT)
-					v = aux1->valor.flo;
-			}
-			break;
-		
-		case 'n':
-			aux1 = srch(l1,((Varval *)a)->var);
-			if(aux1 && aux1->tipo == VETOR) {
-				int idx = ((Varval *)a)->size;
-				if(idx >= 0 && idx < aux1->valor.vetor.tamanho)
-					v = aux1->valor.vetor.vet[idx];
-			}
-			break;
-		
-		case '+': v = eval(a->l) + eval(a->r); break;
-		case '-': v = eval(a->l) - eval(a->r); break;
-		case '*': v = eval(a->l) * eval(a->r); break;
-		case '/': v = eval(a->l) / eval(a->r); break;
-		case 'M': v = -eval(a->l); break;
-	
-		case '1': v = (eval(a->l) > eval(a->r))? 1 :  0; break;
-		case '2': v = (eval(a->l) < eval(a->r))? 1 :  0; break;
-		case '3': v = (eval(a->l) != eval(a->r))? 1 : 0; break;
-		case '4': v = (eval(a->l) == eval(a->r))? 1 : 0; break;
-		case '5': v = (eval(a->l) >= eval(a->r))? 1 : 0; break;
-		case '6': v = (eval(a->l) <= eval(a->r))? 1 : 0; break;
-
-		case '=':
-			v = eval(((Symasgn *)a)->v);
-			aux1 = srch(l1,((Symasgn *)a)->s);
-			
-			if(!aux1) {
-				// Criar variável se não existir
-				l1 = ins_float(l1, ((Symasgn *)a)->s, v);
-			} else {
-				if (aux1->tipo == TIPO_INT) {
-    				aux1->valor.inter = (int)v;
-				} else if (aux1->tipo == TIPO_FLOAT) {
-    				aux1->valor.flo = v;
-				} else if (aux1->tipo == VETOR) {
-					int idx = ((Symasgn *)a)->pos;
-					if(idx >= 0 && idx < aux1->valor.vetor.tamanho)
-    					aux1->valor.vetor.vet[idx] = v;
-				}
-			}
-			break;
-		
-		case 'I':
-			if (eval(((Flow *)a)->cond) != 0) {
-				if (((Flow *)a)->tl)
-					v = eval(((Flow *)a)->tl);
-				else
-					v = 0.0;
-			} else {
-				if( ((Flow *)a)->el) {
-					v = eval(((Flow *)a)->el);
-				} else
-					v = 0.0;
-			}
-			break;
-			
-		case 'W':
-			v = 0.0;
-			if( ((Flow *)a)->tl) {
-				while( eval(((Flow *)a)->cond) != 0){
-					v = eval(((Flow *)a)->tl);
-				}
-			}
-			break;
-			
-		case 'L': 
-			eval(a->l); 
-			v = eval(a->r); 
-			break;
-		
-		case 'P': 	
-			v = eval(a->l);
-			printf ("%.2f\n",v);
-			break;
-		
-		case 'S': 	
-			scanf("%lf",&v);
-			aux1 = srch(l1,((Varval *)a)->var);
-			if(aux1) {
-				if(aux1->tipo == TIPO_FLOAT)
-					aux1->valor.flo = v;
-				else if(aux1->tipo == TIPO_INT)
-					aux1->valor.inter = (int)v;
-			}
-			break;
-		
-		case 'T': 	
-			scanf("%49s",v1);
-			aux1 = srch(l1,((Varval *)a)->var);
-			if(aux1 && aux1->tipo == TIPO_STRING) {
-				strcpy(aux1->valor.str,v1);
-			}
-			break;			
-		
-		case 'Y':	
-			v2 = eval2(a->l);
-			if(v2)
-				printf ("%s\n",v2); 
-			break;
-					
-		case 'V': 	
-			l1 = ins_float(l1,((Varval*)a)->var,0.0);
-			break;
-			
-		case 'a':	
-			l1 = ins_vetor(l1,((Varval*)a)->var,((Varval*)a)->size);
-			break;
-			
-		default: 
-			printf("internal error: bad node %c\n", a->nodetype);
-			break;
-	}
-	return v;
+Ast *newvar_array(char *name, int index) {
+    Varval *a = (Varval*)malloc(sizeof(Varval));
+    a->nodetype = 'A';
+    strcpy(a->var, name);
+    a->index = index;
+    return (Ast*)a;
 }
+
+Ast *newflow(int nodetype, Ast *cond, Ast *tl, Ast *el) {
+    Flow *a = (Flow*)malloc(sizeof(Flow));
+    a->nodetype = nodetype;
+    a->cond = cond;
+    a->tl = tl;
+    a->el = el;
+    return (Ast*)a;
+}
+
+Ast *newcmp(int cmptype, Ast *l, Ast *r) {
+    Ast *a = (Ast*)malloc(sizeof(Ast));
+    a->nodetype = '0' + cmptype;
+    a->l = l;
+    a->r = r;
+    return a;
+}
+
+Ast *newasgn(char *s, Ast *v, int type, int index) {
+    Symasgn *a = (Symasgn*)malloc(sizeof(Symasgn));
+    a->nodetype = '=';
+    strcpy(a->s, s);
+    a->v = v;
+    a->index = index;
+    a->type = type;
+    return (Ast*)a;
+}
+
+Ast *newdecl(char *s, int type, int arr_size) {
+    Decl *a = (Decl*)malloc(sizeof(Decl));
+    a->nodetype = 'D';
+    strcpy(a->s, s);
+    a->type = type;
+    a->arr_size = arr_size;
+    return (Ast*)a;
+}
+
+void eval(Ast *a);
+
+void eval_decl(Decl *d) {
+    if (d->arr_size == 0) {
+        l1 = ins(l1, d->s, d->type);
+    } else {
+        l1 = ins_array(l1, d->s, d->type, d->arr_size);
+    }
+}
+
+double eval_num(Ast *a) {
+    if (a->nodetype == 'I') {
+        return ((Numval*)a)->value.ival;
+    } else if (a->nodetype == 'F') {
+        return ((Numval*)a)->value.fval;
+    } else if (a->nodetype == 'V') {
+        VARI *v = srch(l1, ((Varval*)a)->var);
+        if (v->nodetype == 1) return v->value.ival;
+        else return v->value.fval;
+    } else if (a->nodetype == 'A') {
+        Varval *vv = (Varval*)a;
+        VARI *v = srch(l1, vv->var);
+        if (v->nodetype == 4) return v->value.iarr[vv->index];
+        else return v->value.farr[vv->index];
+    } else if (a->nodetype == '+') {
+        return eval_num(a->l) + eval_num(a->r);
+    } else if (a->nodetype == '-') {
+        return eval_num(a->l) - eval_num(a->r);
+    } else if (a->nodetype == '*') {
+        return eval_num(a->l) * eval_num(a->r);
+    } else if (a->nodetype == '/') {
+        return eval_num(a->l) / eval_num(a->r);
+    } else if (a->nodetype == 'M') {
+        return -eval_num(a->l);
+    } else {
+        printf("Error: invalid numeric expression\n");
+        return 0;
+    }
+}
+
+int eval_int(Ast *a) {
+    return (int)eval_num(a);
+}
+
+char* eval_str(Ast *a) {
+    if (a->nodetype == 'S') {
+        return ((Strval*)a)->sval;
+    } else if (a->nodetype == 'V') {
+        VARI *v = srch(l1, ((Varval*)a)->var);
+        if (v->nodetype == 3) return v->value.sval;
+        else {
+            printf("Error: variable is not a string\n");
+            return "";
+        }
+    } else {
+        printf("Error: invalid string expression\n");
+        return "";
+    }
+}
+
+int eval_bool(Ast *a) {
+    if (a->nodetype >= '1' && a->nodetype <= '6') {
+        double l = eval_num(a->l);
+        double r = eval_num(a->r);
+        switch(a->nodetype) {
+            case '1': return l > r;
+            case '2': return l < r;
+            case '3': return l != r;
+            case '4': return l == r;
+            case '5': return l >= r;
+            case '6': return l <= r;
+        }
+    }
+    return 0;
+}
+
+void eval(Ast *a) {
+    if (!a) return;
+    
+    switch(a->nodetype) {
+        case 'D': eval_decl((Decl*)a); break;
+        
+        case '=': {
+            Symasgn *s = (Symasgn*)a;
+            VARI *v = srch(l1, s->s);
+            if (!v) {
+                printf("Error: variable not declared\n");
+                break;
+            }
+            
+            if (s->index == -1) { // regular variable
+                if (s->type == 1) v->value.ival = eval_int(s->v);
+                else if (s->type == 2) v->value.fval = eval_num(s->v);
+                else if (s->type == 3) strcpy(v->value.sval, eval_str(s->v));
+            } else { // array
+                if (v->nodetype == 4) v->value.iarr[s->index] = eval_int(s->v);
+                else v->value.farr[s->index] = eval_num(s->v);
+            }
+            break;
+        }
+        
+        case 'I': // if
+            if (eval_bool(((Flow*)a)->cond)) {
+                eval(((Flow*)a)->tl);
+            } else if (((Flow*)a)->el) {
+                eval(((Flow*)a)->el);
+            }
+            break;
+            
+        case 'W': // while
+            while (eval_bool(((Flow*)a)->cond)) {
+                eval(((Flow*)a)->tl);
+            }
+            break;
+            
+        case 'P': // print number
+            printf("%g\n", eval_num(((Flow*)a)->tl));
+            break;
+            
+        case 'Y': // print string
+            printf("%s\n", eval_str(((Flow*)a)->tl));
+            break;
+            
+        case 'L': // statement list
+            eval(a->l);
+            eval(a->r);
+            break;
+            
+        case 'R': // read number
+            break;
+            
+        case 'T': // read string
+            break;
+            
+        default:
+            printf("Error: unknown statement type\n");
+    }
+}
+
+int yylex();
+void yyerror(char *s) {
+    printf("%s\n", s);
+}
+
 %}
 
-%union {
-    int inter;
+%union{
     float flo;
-    char str[50];
     int fn;
-    struct ast *a;  
+    int inter;
+    char str[50];
+    Ast *a;
 }
 
-%type <a> prog stmt list exp funcao
 %token <flo> NUM
-%token <str> VAR TEXTO STRING
-%token <fn> CMP SIMB
-
-%token INICIO FIM IF ELSE WHILE PRINT DECL SCAN PRINTT SCANS
+%token <str> VARS
+%token FIM IF ELSE WHILE PRINT PRINTT SCAN SCANS
+%token INT FLOAT STRING
+%token <fn> CMP
 
 %right '='
 %left '+' '-'
 %left '*' '/'
-%left '^'
-%precedence NEG
-%nonassoc IFX
+%left CMP
+
+%type <a> exp num_exp str_exp stmt list prog
+
+%nonassoc IFX VARPREC DECLPREC NEG VET
 
 %%
 
-val: INICIO prog FIM
-	;
+val: prog FIM
+    ;
 
-prog: stmt 		{eval($1);}
-	| prog stmt {eval($2);}
-	;
-	
-funcao: STRING {printf("%s\n",$1);}
-	| exp {double result = eval($1); printf("%.2f\n",result);}
-	;
+prog: stmt { eval($1); }
+    | prog stmt { eval($2); }
+    ;
+    
+stmt: 
+    | IF '(' exp ')' '{' list '}' %prec IFX { $$ = newflow('I', $3, $6, NULL); }
+    | IF '(' exp ')' '{' list '}' ELSE '{' list '}' { $$ = newflow('I', $3, $6, $10); }
+    | WHILE '(' exp ')' '{' list '}' { $$ = newflow('W', $3, $6, NULL); }
+    
+    | INT VARS { $$ = newdecl($2, 1, 0); }
+    | FLOAT VARS { $$ = newdecl($2, 2, 0); }
+    | STRING VARS { $$ = newdecl($2, 3, 0); }
+    | INT VARS '[' NUM ']' { $$ = newdecl($2, 1, (int)$4); }
+    | FLOAT VARS '[' NUM ']' { $$ = newdecl($2, 2, (int)$4); }
+    
+    | VARS '=' num_exp { $$ = newasgn($1, $3, 1, -1); }
+    | VARS '=' exp { $$ = newasgn($1, $3, 2, -1); }
+    | VARS '=' str_exp { $$ = newasgn($1, $3, 3, -1); }
+    | VARS '[' NUM ']' '=' num_exp { $$ = newasgn($1, $6, 1, (int)$3); }
+    | VARS '[' NUM ']' '=' exp { $$ = newasgn($1, $6, 2, (int)$3); }
+    
+    | PRINT '(' num_exp ')' { $$ = newast('P', $3, NULL); }
+    | PRINTT '(' str_exp ')' { $$ = newast('Y', $3, NULL); }
+    | SCAN '(' VARS ')' { /* Implement read */ }
+    | SCANS '(' VARS ')' { /* Implement read string */ }
+    ;
 
-stmt: IF '(' exp ')' '{' list '}' %prec IFX {$$ = newflow('I', $3, $6, NULL);}
-	| IF '(' exp ')' '{' list '}' ELSE '{' list '}' {$$ = newflow('I', $3, $6, $10);}
-	| WHILE '(' exp ')' '{' list '}' {$$ = newflow('W', $3, $6, NULL);}
-	| VAR '=' exp {$$ = newasgn($1,$3);}
-	| PRINT '(' funcao ')' { $$ = newast('P',$3,NULL);}
-	;
-
-list: stmt{$$ = $1;}
-	| list stmt { $$ = newast('L', $1, $2);}
-	;
-	
-exp: exp '+' exp {$$ = newast('+',$1,$3);}
-	| exp '-' exp {$$ = newast('-',$1,$3);}
-	| exp '*' exp {$$ = newast('*',$1,$3);}
-	| exp '/' exp {$$ = newast('/',$1,$3);}
-	| exp CMP exp {$$ = newcmp($2,$1,$3);}
-	| '(' exp ')' {$$ = $2;}
-	| '-' exp %prec NEG {$$ = newast('M',$2,NULL);}
-	| NUM {$$ = newnum($1);}
-	| VAR {$$ = newValorVal($1);}
-	;
+list: stmt { $$ = $1; }
+    | list stmt { $$ = newast('L', $1, $2); }
+    ;
+    
+exp: 
+    num_exp { $$ = $1; }
+    | str_exp { $$ = $1; }
+    ;
+    
+num_exp:
+    num_exp '+' num_exp { $$ = newast('+', $1, $3); }
+    | num_exp '-' num_exp { $$ = newast('-', $1, $3); }
+    | num_exp '*' num_exp { $$ = newast('*', $1, $3); }
+    | num_exp '/' num_exp { $$ = newast('/', $1, $3); }
+    | num_exp CMP num_exp { $$ = newcmp($2, $1, $3); }
+    | '(' num_exp ')' { $$ = $2; }
+    | '-' num_exp %prec NEG { $$ = newast('M', $2, NULL); }
+    | NUM { $$ = newnum_float($1); }
+    | VARS { $$ = newvar($1); }
+    | VARS '[' NUM ']' { $$ = newvar_array($1, (int)$3); }
+    ;
+    
+str_exp:
+    VARS { $$ = newvar($1); }
+    | '"' VARS '"' { $$ = newstr($2); }
+    ;
 
 %%
+
 #include "lex.yy.c"
 
 int main() {
-    extern FILE *yyin;
     yyin = fopen("entrada.txt", "r");
     if (!yyin) {
-        printf("Erro ao abrir arquivo\n");
+        printf("Error: cannot open input file\n");
         return 1;
     }
     yyparse();
     fclose(yyin);
-    free_vars(l1);
     return 0;
 }

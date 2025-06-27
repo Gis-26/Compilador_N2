@@ -1,28 +1,26 @@
 %{
 #include <string.h>
-
+#include "aulaAST.tab.h"
 %}
 
-/* Expressões Regulares */
 NUM [0-9]+\.?[0-9]*
-TEXTO [A-Za-z] 
-VAR [a-z]+[0-9]*
-DECL "var"
-PRINT "PRINT"
-INICIO "INICIO"
+VARS [a-zA-Z_][a-zA-Z0-9_]*
 FIM "FIM"
-SCAN "SCAN"
 IF "IF"
 ELSE "ELSE"
 WHILE "WHILE"
+PRINT "PRINT"
 PRINTT "PRINTT"
-SCANS "SCANS"
-	
-/* Tokens */
-%%
+SCAN "LER"
+SCANS "LERS"
+DECL "var"
+INT "int"
+FLOAT "float"
+STRING "string"
+COMMENT "//".*
 
+%%
 {FIM} {return FIM;}
-{INICIO} {return INICIO;}
 {IF} {return IF;}
 {ELSE} {return ELSE;}
 {WHILE} {return WHILE;}
@@ -31,47 +29,31 @@ SCANS "SCANS"
 {SCAN} {return SCAN;}
 {SCANS} {return SCANS;}
 {DECL} {return DECL;}
+{INT} {return INT;}
+{FLOAT} {return FLOAT;}
+{STRING} {return STRING;}
 
-{VAR} {
-	strcpy(yylval.str,yytext);
-	return VAR;
+{VARS} {
+    strcpy(yylval.str,yytext);
+    return VARS;
 }
 
 {NUM} {
-	yylval.flo = atof(yytext);
-	return NUM;
+    yylval.flo = atof(yytext);
+    return NUM;
 }
 
-{TEXTO} {
-	strcpy(yylval.str,yytext);
-	return TEXTO;
-}
+{COMMENT} { /* Ignore comments */ }
 
-\"([^\"\\]|\\.)*\"  { 
-	strncpy(yylval.str, yytext + 1, sizeof(yylval.str) - 1); 
-	yylval.str[strlen(yylval.str) - 1] = '\0'; 
-	return STRING; 
-}
-
-[-+()=/*^{};\[\],] {return *yytext;}
-
-">"  {yylval.fn = 1; return CMP; }
-"<"  {yylval.fn = 2; return CMP; }
+">" {yylval.fn = 1; return CMP; }
+"<" {yylval.fn = 2; return CMP; }
 "<>" {yylval.fn = 3; return CMP; }
 "==" {yylval.fn = 4; return CMP; }
 ">=" {yylval.fn = 5; return CMP; }
 "<=" {yylval.fn = 6; return CMP; }
-"&&" {yylval.fn = 7; return CMP; }
-"||" {yylval.fn = 8; return CMP; }
-"!=" {yylval.fn = 9; return CMP; }
 
-"." {yylval.fn = 10; return SIMB; }
-"#" {yylval.fn = 12; return SIMB; }
-":" {yylval.fn = 13; return SIMB; }
-"?" {yylval.fn = 14; return SIMB; }
-"!" {yylval.fn = 15; return SIMB; }
-"%" {yylval.fn = 16; return SIMB; }
+[-+()=/*^{};\[\],] {return *yytext;}
 
-[\ \n\t]*	{;}
-
+[\ \n\t]* {;}
+. {printf("(%s) Ignorado\n",yytext);}
 %%
