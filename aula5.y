@@ -391,10 +391,6 @@ exp: NUM { $$ = newnum($1); }
 
 int main() {
     yyin = fopen("entrada.txt", "r");
-    if (!yyin) {
-        printf("Nao foi possivel abrir o arquivo 'entrada.txt'\n");
-        return 1;
-    }
     yyparse();
     fclose(yyin);
     return 0;
