@@ -71,442 +71,322 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
-int yylex();
-void yyerror(char *s) {
-    printf("Erro: %s\n", s);
-}
-
-typedef enum { TIPO_INT, TIPO_FLOAT, TIPO_STRING, VETOR} Tipo_vars;
-
+// nodetype variáveis
+// 1 - números (int/float), 2 - string, 3 - vetor
 typedef struct vars {
+    int nodetype;
     char name[50];
-    Tipo_vars tipo;
-    union {
-        int inter;
-        float flo;
-        char str[50];
-        struct {
-            double *vet;
-            int tamanho;
-        } vetor;
-    } valor;
+    double valor;
+    char valors[50];
+    double *vet;
     struct vars *prox;
-} VARS;
+} VARI;
 
-VARS *ins_float(VARS *l, char n[], float v) {
-    VARS *new = malloc(sizeof(VARS));
+VARI *l1;
+
+VARI *ins(VARI *l, char n[], int type) {
+    VARI *new = (VARI *)malloc(sizeof(VARI));
     strcpy(new->name, n);
-    new->tipo = TIPO_FLOAT;
-    new->valor.flo = v;
     new->prox = l;
-    return new;
-}
-
-VARS *ins_int(VARS *l, char n[], int v) {
-    VARS *new = malloc(sizeof(VARS));
-    strcpy(new->name, n);
-    new->tipo = TIPO_INT;
-    new->valor.inter = v;
-    new->prox = l;
-    return new;
-}
-
-VARS *ins_string(VARS *l, char n[], char v[]) {
-    VARS *new = malloc(sizeof(VARS));
-    strcpy(new->name, n);
-    new->tipo = TIPO_STRING;
-    strncpy(new->valor.str, v, sizeof(new->valor.str)-1);
-    new->valor.str[sizeof(new->valor.str)-1] = '\0';
-    new->prox = l;
-    return new;
-}
-
-VARS *ins_vetor(VARS *l, char n[], int tamanho) {
-    VARS *new = malloc(sizeof(VARS));
-    if (!new) {
-        perror("malloc erro");
-        exit(EXIT_FAILURE);
+    new->nodetype = type; 
+    
+    if (type == 2) { // Se for string
+        strcpy(new->valors, "");
+    } else { // Se for numérico
+        new->valor = 0;
     }
-    strcpy(new->name, n);
-    new->tipo = VETOR;
-    new->valor.vetor.vet = malloc(tamanho * sizeof(double));
-    if (!new->valor.vetor.vet) {
-        perror("malloc erro");
-        free(new);
-        exit(EXIT_FAILURE);
-    }
-    new->valor.vetor.tamanho = tamanho;
-    new->prox = l;
     return new;
 }
 
-// buscar variavel na lista de variaveis
-VARS *srch(VARS *l, char n[]) {
-    VARS *aux = l;
+VARI *ins_a(VARI *l, char n[], int tamanho) {
+    VARI *new = (VARI *)malloc(sizeof(VARI));
+    strcpy(new->name, n);
+    new->vet = (double *)malloc(tamanho * sizeof(double));
+    new->prox = l;
+    new->nodetype = 3;
+    return new;
+}
+
+VARI *srch(VARI *l, char n[]) {
+    VARI *aux = l;
     while (aux != NULL) {
         if (strcmp(n, aux->name) == 0)
             return aux;
         aux = aux->prox;
     }
-    return NULL;  
-}
-
-//liberar o vetor e a lista de variaveis
-void free_vars(VARS *l) {
-    while (l) {
-        VARS *temp = l;
-        l = l->prox;
-        if (temp->tipo == VETOR) free(temp->valor.vetor.vet);
-        free(temp);
-    }
+    return aux;
 }
 
 typedef struct ast {
-	int nodetype;
-	struct ast *l;
-	struct ast *r;
-}Ast; 
+    int nodetype;
+    struct ast *l;
+    struct ast *r;
+} Ast;
 
 typedef struct numval {
-	int nodetype;
-	double number;
-}Numval;
+    int nodetype;
+    double number;
+} Numval;
+
 
 typedef struct varval {
-	int nodetype;
-	char var[50];
-	int size;
-}Varval;
-	
+    int nodetype;
+    char var[50];
+    Ast *indice;   // ir no índice 
+    int size;   // tamanho do vetor
+} Varval;
+
 typedef struct texto {
-	int nodetype;
-	char txt[50];
-}TXT;	
-	
+    int nodetype;
+    char txt[50];
+} TXT;
+
 typedef struct flow {
-	int nodetype;
-	Ast *cond;
-	Ast *tl;
-	Ast *el;
-}Flow;
+    int nodetype;
+    Ast *cond;
+    Ast *tl;
+    Ast *el;
+} Flow;
 
 typedef struct symasgn {
-	int nodetype;
-	char s[50];
-	Ast *v;
-	int pos;
-}Symasgn;
+    int nodetype;
+    char s[50];
+    Ast *v;
+    Ast *indice; 
+} Symasgn;
 
-VARS *l1 = NULL;
-VARS *aux;
-
-Ast * newast(int nodetype, Ast *l, Ast *r){
-	Ast *a = (Ast*) malloc(sizeof(Ast));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = nodetype;
-	a->l = l;
-	a->r = r;
-	return a;
-}
- 
-Ast * newvari(int nodetype, char nome[50]) {
-	Varval *a = (Varval*) malloc(sizeof(Varval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = nodetype;
-	strcpy(a->var,nome);
-	return (Ast*)a;
+// Funções construtoras da AST
+Ast *newast(int nodetype, Ast *l, Ast *r) {
+    Ast *a = (Ast *)malloc(sizeof(Ast));
+    if (!a) { printf("out of space"); exit(0); }
+    a->nodetype = nodetype;
+    a->l = l;
+    a->r = r;
+    return a;
 }
 
-Ast * newarray(int nodetype, char nome[50], int tam) {
-	Varval *a = (Varval*) malloc(sizeof(Varval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = nodetype;
-	strcpy(a->var,nome);
-	a->size = tam;
-	return (Ast*)a;
-}	
-	
-Ast * newtext(int nodetype, char txt[500]) {
-	TXT *a = (TXT*) malloc(sizeof(TXT));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = nodetype;
-	strncpy(a->txt, txt, sizeof(a->txt)-1);
-	a->txt[sizeof(a->txt)-1] = '\0';
-	return (Ast*)a;
-}	
-	
-Ast * newnum(double d) {
-	Numval *a = (Numval*) malloc(sizeof(Numval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = 'K';
-	a->number = d;
-	return (Ast*)a;
-}	
-	
-Ast * newflow(int nodetype, Ast *cond, Ast *tl, Ast *el){
-	Flow *a = (Flow*)malloc(sizeof(Flow));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = nodetype;
-	a->cond = cond;
-	a->tl = tl;
-	a->el = el;
-	return (Ast *)a;
+Ast *newvari(int nodetype, char nome[50]) {
+    Varval *a = (Varval *)malloc(sizeof(Varval));
+    if (!a) { printf("out of space"); exit(0); }
+    a->nodetype = nodetype;
+    strcpy(a->var, nome);
+    return (Ast *)a;
 }
 
-Ast * newcmp(int cmptype, Ast *l, Ast *r){
-	Ast *a = (Ast*)malloc(sizeof(Ast));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = '0' + cmptype;
-	a->l = l;
-	a->r = r;
-	return a;
+Ast *newarray(int nodetype, char nome[50], int tam) {
+    Varval *a = (Varval *)malloc(sizeof(Varval));
+    if (!a) { printf("out of space"); exit(0); }
+    a->nodetype = nodetype;
+    strcpy(a->var, nome);
+    a->size = tam;
+    a->indice = NULL; 
+    return (Ast *)a;
 }
 
-Ast * newasgn(char s[50], Ast *v) {
-	Symasgn *a = (Symasgn*)malloc(sizeof(Symasgn));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = '=';
-	strcpy(a->s,s);
-	a->v = v;
-	a->pos = 0;
-	return (Ast *)a;
+Ast *newtext(int nodetype, char txt[50]) {
+    TXT *a = (TXT *)malloc(sizeof(TXT));
+    if (!a) { printf("out of space"); exit(0); }
+    a->nodetype = nodetype;
+    strcpy(a->txt, txt);
+    return (Ast *)a;
 }
 
-Ast * newasgn_a(char s[50], Ast *v, int indice) {
-	Symasgn *a = (Symasgn*)malloc(sizeof(Symasgn));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = '=';
-	strcpy(a->s,s);
-	a->v = v;
-	a->pos = indice;
-	return (Ast *)a;
-}
-	
-Ast * newValorVal(char s[]) {
-	Varval *a = (Varval*) malloc(sizeof(Varval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = 'N';
-	strcpy(a->var,s);
-	a->size = 0;
-	return (Ast*)a;
-}
-	
-Ast * newValorVal_a(char s[], int indice) {
-	Varval *a = (Varval*) malloc(sizeof(Varval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = 'n';
-	strcpy(a->var,s);
-	a->size = indice;
-	return (Ast*)a;
-}	
-
-Ast * newValorValS(char s[50]) {
-	Varval *a = (Varval*) malloc(sizeof(Varval));
-	if(!a) {
-		printf("out of space");
-		exit(0);
-	}
-	a->nodetype = 'Q';
-	strcpy(a->var,s);
-	a->size = 0;
-	return (Ast*)a;
-}
-	
-char * eval2(Ast *a) {
-	VARS *aux1;
-	char *v2 = NULL;
-	
-	switch(a->nodetype) {
-		case 'Q':
-			aux1 = srch(l1,((Varval *)a)->var);
-			if(aux1 && aux1->tipo == TIPO_STRING)
-				return aux1->valor.str;
-			break;
-		default: 
-			printf("internal error: bad node %c\n", a->nodetype);
-			break;
-	}
-	return v2;
+Ast *newnum(double d) {
+    Numval *a = (Numval *)malloc(sizeof(Numval));
+    if (!a) { printf("out of space"); exit(0); }
+    a->nodetype = 'K';
+    a->number = d;
+    return (Ast *)a;
 }
 
+Ast *newflow(int nodetype, Ast *cond, Ast *tl, Ast *el) {
+    Flow *a = (Flow *)malloc(sizeof(Flow));
+    if (!a) { printf("out of space"); exit(0); }
+    a->nodetype = nodetype;
+    a->cond = cond;
+    a->tl = tl;
+    a->el = el;
+    return (Ast *)a;
+}
+
+Ast *newcmp(int cmptype, Ast *l, Ast *r) {
+    Ast *a = (Ast *)malloc(sizeof(Ast));
+    if (!a) { printf("out of space"); exit(0); }
+    a->nodetype = '0' + cmptype;
+    a->l = l;
+    a->r = r;
+    return a;
+}
+
+Ast *newasgn(char s[50], Ast *v) {
+    Symasgn *a = (Symasgn *)malloc(sizeof(Symasgn));
+    if (!a) { printf("out of space"); exit(0); }
+    a->nodetype = '=';
+    strcpy(a->s, s);
+    a->v = v;
+    a->indice = NULL; 
+    return (Ast *)a;
+}
+
+Ast *newasgn_a(char s[50], Ast *v, Ast *indice) {
+    Symasgn *a = (Symasgn *)malloc(sizeof(Symasgn));
+    if (!a) { printf("out of space"); exit(0); }
+    a->nodetype = '=';
+    strcpy(a->s, s);
+    a->v = v;
+    a->indice = indice; // Salva a expressão do índice
+    return (Ast *)a;
+}
+
+Ast *newValorVal(char s[]) {
+    Varval *a = (Varval *)malloc(sizeof(Varval));
+    if (!a) { printf("out of space"); exit(0); }
+    a->nodetype = 'N';
+    strcpy(a->var, s);
+    a->indice = NULL;
+    return (Ast *)a;
+}
+
+Ast *newValorVal_a(char s[], Ast *indice) {
+    Varval *a = (Varval *)malloc(sizeof(Varval));
+    if (!a) { printf("out of space"); exit(0); }
+    a->nodetype = 'n';
+    strcpy(a->var, s);
+    a->indice = indice; // Salva a expressão do índice
+    return (Ast *)a;
+}
+
+// Função de avaliação da AST
 double eval(Ast *a) {
-	double v = 0.0; 
-	char v1[50];
-	char *v2;
-	VARS * aux1;
-	
-	if(!a) {
-		printf("internal error, null eval");
-		return 0.0;
-	}
-	
-	switch(a->nodetype) {
-		case 'K': 
-			v = ((Numval *)a)->number; 
-			break;
-			
-		case 'N': 
-			aux1 = srch(l1,((Varval *)a)->var);
-			if(aux1) {
-				if(aux1->tipo == TIPO_INT)
-					v = aux1->valor.inter;
-				else if(aux1->tipo == TIPO_FLOAT)
-					v = aux1->valor.flo;
-			}
-			break;
-		
-		case 'n':
-			aux1 = srch(l1,((Varval *)a)->var);
-			if(aux1 && aux1->tipo == VETOR) {
-				int idx = ((Varval *)a)->size;
-				if(idx >= 0 && idx < aux1->valor.vetor.tamanho)
-					v = aux1->valor.vetor.vet[idx];
-			}
-			break;
-		
-		case '+': v = eval(a->l) + eval(a->r); break;
-		case '-': v = eval(a->l) - eval(a->r); break;
-		case '*': v = eval(a->l) * eval(a->r); break;
-		case '/': v = eval(a->l) / eval(a->r); break;
-		case 'M': v = -eval(a->l); break;
-	
-		case '1': v = (eval(a->l) > eval(a->r))? 1 :  0; break;
-		case '2': v = (eval(a->l) < eval(a->r))? 1 :  0; break;
-		case '3': v = (eval(a->l) != eval(a->r))? 1 : 0; break;
-		case '4': v = (eval(a->l) == eval(a->r))? 1 : 0; break;
-		case '5': v = (eval(a->l) >= eval(a->r))? 1 : 0; break;
-		case '6': v = (eval(a->l) <= eval(a->r))? 1 : 0; break;
+    double v = 0.0;
+    VARI *aux;
+    int index = 0; // Variável para guardar o índice calculado
 
-		case '=':
-			v = eval(((Symasgn *)a)->v);
-			aux1 = srch(l1,((Symasgn *)a)->s);
-			
-			if(!aux1) {
-				// Criar variável se não existir
-				l1 = ins_float(l1, ((Symasgn *)a)->s, v);
-			} else {
-				if (aux1->tipo == TIPO_INT) {
-    				aux1->valor.inter = (int)v;
-				} else if (aux1->tipo == TIPO_FLOAT) {
-    				aux1->valor.flo = v;
-				} else if (aux1->tipo == VETOR) {
-					int idx = ((Symasgn *)a)->pos;
-					if(idx >= 0 && idx < aux1->valor.vetor.tamanho)
-    					aux1->valor.vetor.vet[idx] = v;
-				}
-			}
-			break;
-		
-		case 'I':
-			if (eval(((Flow *)a)->cond) != 0) {
-				if (((Flow *)a)->tl)
-					v = eval(((Flow *)a)->tl);
-				else
-					v = 0.0;
-			} else {
-				if( ((Flow *)a)->el) {
-					v = eval(((Flow *)a)->el);
-				} else
-					v = 0.0;
-			}
-			break;
-			
-		case 'W':
-			v = 0.0;
-			if( ((Flow *)a)->tl) {
-				while( eval(((Flow *)a)->cond) != 0){
-					v = eval(((Flow *)a)->tl);
-				}
-			}
-			break;
-			
-		case 'L': 
-			eval(a->l); 
-			v = eval(a->r); 
-			break;
-		
-		case 'P': 	
-			v = eval(a->l);
-			printf ("%.2f\n",v);
-			break;
-		
-		case 'S': 	
-			scanf("%lf",&v);
-			aux1 = srch(l1,((Varval *)a)->var);
-			if(aux1) {
-				if(aux1->tipo == TIPO_FLOAT)
-					aux1->valor.flo = v;
-				else if(aux1->tipo == TIPO_INT)
-					aux1->valor.inter = (int)v;
-			}
-			break;
-		
-		case 'T': 	
-			scanf("%49s",v1);
-			aux1 = srch(l1,((Varval *)a)->var);
-			if(aux1 && aux1->tipo == TIPO_STRING) {
-				strcpy(aux1->valor.str,v1);
-			}
-			break;			
-		
-		case 'Y':	
-			v2 = eval2(a->l);
-			if(v2)
-				printf ("%s\n",v2); 
-			break;
-					
-		case 'V': 	
-			l1 = ins_float(l1,((Varval*)a)->var,0.0);
-			break;
-			
-		case 'a':	
-			l1 = ins_vetor(l1,((Varval*)a)->var,((Varval*)a)->size);
-			break;
-			
-		default: 
-			printf("internal error: bad node %c\n", a->nodetype);
-			break;
-	}
-	return v;
+    if (!a) { return 0.0; }
+    
+    switch (a->nodetype) {
+        case 'K': v = ((Numval *)a)->number; break;
+        case 'N':
+            aux = srch(l1, ((Varval *)a)->var);
+            if (!aux) printf("Warning: Variavel '%s' nao definida, usando valor 0.\n", ((Varval *)a)->var);
+            v = aux ? aux->valor : 0.0;
+            break;
+        
+        case 'n':
+            aux = srch(l1, ((Varval *)a)->var);
+            if (!aux) {
+                printf("Warning: Vetor '%s' nao definido.\n", ((Varval *)a)->var);
+                v = 0.0;
+            } else {
+                index = (int)eval(((Varval *)a)->indice);
+                v = aux->vet[index];
+            }
+            break;
+            
+        case '+': v = eval(a->l) + eval(a->r); break;
+        case '-': v = eval(a->l) - eval(a->r); break;
+        case '*': v = eval(a->l) * eval(a->r); break;
+        case '/': v = eval(a->l) / eval(a->r); break;
+        case 'M': v = -eval(a->l); break;
+        case '1': v = (eval(a->l) > eval(a->r)) ? 1 : 0; break;
+        case '2': v = (eval(a->l) < eval(a->r)) ? 1 : 0; break;
+        case '3': v = (eval(a->l) != eval(a->r)) ? 1 : 0; break;
+        case '4': v = (eval(a->l) == eval(a->r)) ? 1 : 0; break;
+        case '5': v = (eval(a->l) >= eval(a->r)) ? 1 : 0; break;
+        case '6': v = (eval(a->l) <= eval(a->r)) ? 1 : 0; break;
+
+        case '=':
+            aux = srch(l1, ((Symasgn *)a)->s);
+            if (!aux) {
+                l1 = ins(l1, ((Symasgn *)a)->s, 1); 
+                aux = srch(l1, ((Symasgn *)a)->s);
+            }
+            
+            if (((Symasgn *)a)->v->nodetype == 's') { // Atribuição de string
+                strcpy(aux->valors, ((TXT *)((Symasgn *)a)->v)->txt);
+                aux->nodetype = 2;
+                v = 0;
+            } else if (((Symasgn *)a)->indice != NULL) { // Atribuição a vetor 
+                v = eval(((Symasgn *)a)->v);
+                if (aux->nodetype == 3) {
+                    index = (int)eval(((Symasgn *)a)->indice); // Avalia o índice
+                    aux->vet[index] = v;
+                } else {
+                    printf("Erro: Tentando usar a variavel '%s' como vetor.\n", aux->name);
+                }
+            } else { // Atribuição a variável simples
+                v = eval(((Symasgn *)a)->v);
+                aux->valor = v;
+                aux->nodetype = 1;
+            }
+            return v;
+
+        case 'I':
+            if (eval(((Flow *)a)->cond) != 0) {
+                if (((Flow *)a)->tl) v = eval(((Flow *)a)->tl);
+            } else {
+                if (((Flow *)a)->el) v = eval(((Flow *)a)->el);
+            }
+            break;
+        case 'W':
+            while (eval(((Flow *)a)->cond) != 0) {
+                v = eval(((Flow *)a)->tl);
+            }
+            break;
+        case 'L': eval(a->l); v = eval(a->r); break;
+        case 'P': {
+            Ast *child = a->l;
+            if (child->nodetype == 's') {
+                printf("%s\n", ((TXT*)child)->txt);
+            } else if (child->nodetype == 'N') {
+                VARI *var = srch(l1, ((Varval*)child)->var);
+                if (var) {
+                    if (var->nodetype == 2) {
+                        printf("%s\n", var->valors);
+                    } else {
+                        printf("%.2f\n", eval(child));
+                    }
+                } else {
+                    printf("%.2f\n", eval(child));
+                }
+            } else {
+                printf("%.2f\n", eval(child));
+            }
+            v = 0.0;
+            break;
+        }
+        case 'S': {
+            aux = srch(l1, ((Varval *)a)->var);
+            if (aux) {
+                if (aux->nodetype == 2) {
+                    printf("> ");
+                    scanf("%49s", aux->valors);
+                } else {
+                    printf("> ");
+                    scanf("%lf", &v);
+                    aux->valor = v;
+                    aux->nodetype = 1;
+                }
+            } else {
+                printf("Warning: Variavel '%s' nao declarada. Nao foi possivel ler o valor.\n", ((Varval *)a)->var);
+            }
+            break;
+        }
+        case 'a': l1 = ins_a(l1, ((Varval *)a)->var, ((Varval *)a)->size); break;
+        case 's': break;
+        default: printf("internal error: bad node %c\n", a->nodetype);
+    }
+    return v;
 }
 
-#line 510 "aula5.tab.c"
+int yylex();
+void yyerror(char *s) { fprintf(stderr, "Erro sintatico: %s\n", s); }
+
+
+#line 390 "aula5.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -529,74 +409,7 @@ double eval(Ast *a) {
 #  endif
 # endif
 
-
-/* Debug traces.  */
-#ifndef YYDEBUG
-# define YYDEBUG 0
-#endif
-#if YYDEBUG
-extern int yydebug;
-#endif
-
-/* Token kinds.  */
-#ifndef YYTOKENTYPE
-# define YYTOKENTYPE
-  enum yytokentype
-  {
-    YYEMPTY = -2,
-    YYEOF = 0,                     /* "end of file"  */
-    YYerror = 256,                 /* error  */
-    YYUNDEF = 257,                 /* "invalid token"  */
-    NUM = 258,                     /* NUM  */
-    VAR = 259,                     /* VAR  */
-    TEXTO = 260,                   /* TEXTO  */
-    STRING = 261,                  /* STRING  */
-    CMP = 262,                     /* CMP  */
-    SIMB = 263,                    /* SIMB  */
-    INICIO = 264,                  /* INICIO  */
-    FIM = 265,                     /* FIM  */
-    IF = 266,                      /* IF  */
-    ELSE = 267,                    /* ELSE  */
-    WHILE = 268,                   /* WHILE  */
-    PRINT = 269,                   /* PRINT  */
-    DECL = 270,                    /* DECL  */
-    SCAN = 271,                    /* SCAN  */
-    PRINTT = 272,                  /* PRINTT  */
-    SCANS = 273,                   /* SCANS  */
-    NEG = 274,                     /* NEG  */
-    IFX = 275                      /* IFX  */
-  };
-  typedef enum yytokentype yytoken_kind_t;
-#endif
-
-/* Value type.  */
-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-union YYSTYPE
-{
-#line 440 "aula5.y"
-
-    int inter;
-    float flo;
-    char str[50];
-    int fn;
-    struct ast *a;  
-
-#line 585 "aula5.tab.c"
-
-};
-typedef union YYSTYPE YYSTYPE;
-# define YYSTYPE_IS_TRIVIAL 1
-# define YYSTYPE_IS_DECLARED 1
-#endif
-
-
-extern YYSTYPE yylval;
-
-
-int yyparse (void);
-
-
-
+#include "aula5.tab.h"
 /* Symbol kind.  */
 enum yysymbol_kind_t
 {
@@ -605,40 +418,38 @@ enum yysymbol_kind_t
   YYSYMBOL_YYerror = 1,                    /* error  */
   YYSYMBOL_YYUNDEF = 2,                    /* "invalid token"  */
   YYSYMBOL_NUM = 3,                        /* NUM  */
-  YYSYMBOL_VAR = 4,                        /* VAR  */
-  YYSYMBOL_TEXTO = 5,                      /* TEXTO  */
-  YYSYMBOL_STRING = 6,                     /* STRING  */
-  YYSYMBOL_CMP = 7,                        /* CMP  */
-  YYSYMBOL_SIMB = 8,                       /* SIMB  */
-  YYSYMBOL_INICIO = 9,                     /* INICIO  */
-  YYSYMBOL_FIM = 10,                       /* FIM  */
-  YYSYMBOL_IF = 11,                        /* IF  */
-  YYSYMBOL_ELSE = 12,                      /* ELSE  */
-  YYSYMBOL_WHILE = 13,                     /* WHILE  */
-  YYSYMBOL_PRINT = 14,                     /* PRINT  */
-  YYSYMBOL_DECL = 15,                      /* DECL  */
-  YYSYMBOL_SCAN = 16,                      /* SCAN  */
-  YYSYMBOL_PRINTT = 17,                    /* PRINTT  */
-  YYSYMBOL_SCANS = 18,                     /* SCANS  */
-  YYSYMBOL_19_ = 19,                       /* '='  */
-  YYSYMBOL_20_ = 20,                       /* '+'  */
-  YYSYMBOL_21_ = 21,                       /* '-'  */
-  YYSYMBOL_22_ = 22,                       /* '*'  */
-  YYSYMBOL_23_ = 23,                       /* '/'  */
-  YYSYMBOL_24_ = 24,                       /* '^'  */
-  YYSYMBOL_NEG = 25,                       /* NEG  */
-  YYSYMBOL_IFX = 26,                       /* IFX  */
-  YYSYMBOL_27_ = 27,                       /* '('  */
-  YYSYMBOL_28_ = 28,                       /* ')'  */
-  YYSYMBOL_29_ = 29,                       /* '{'  */
-  YYSYMBOL_30_ = 30,                       /* '}'  */
-  YYSYMBOL_YYACCEPT = 31,                  /* $accept  */
-  YYSYMBOL_val = 32,                       /* val  */
-  YYSYMBOL_prog = 33,                      /* prog  */
-  YYSYMBOL_funcao = 34,                    /* funcao  */
-  YYSYMBOL_stmt = 35,                      /* stmt  */
-  YYSYMBOL_list = 36,                      /* list  */
-  YYSYMBOL_exp = 37                        /* exp  */
+  YYSYMBOL_VARS = 4,                       /* VARS  */
+  YYSYMBOL_STRING_LITERAL = 5,             /* STRING_LITERAL  */
+  YYSYMBOL_FIM = 6,                        /* FIM  */
+  YYSYMBOL_IF = 7,                         /* IF  */
+  YYSYMBOL_ELSE = 8,                       /* ELSE  */
+  YYSYMBOL_WHILE = 9,                      /* WHILE  */
+  YYSYMBOL_PRINT = 10,                     /* PRINT  */
+  YYSYMBOL_SCAN = 11,                      /* SCAN  */
+  YYSYMBOL_INT = 12,                       /* INT  */
+  YYSYMBOL_FLOAT = 13,                     /* FLOAT  */
+  YYSYMBOL_STRING = 14,                    /* STRING  */
+  YYSYMBOL_CMP = 15,                       /* CMP  */
+  YYSYMBOL_16_ = 16,                       /* '='  */
+  YYSYMBOL_17_ = 17,                       /* '+'  */
+  YYSYMBOL_18_ = 18,                       /* '-'  */
+  YYSYMBOL_19_ = 19,                       /* '*'  */
+  YYSYMBOL_20_ = 20,                       /* '/'  */
+  YYSYMBOL_NEG = 21,                       /* NEG  */
+  YYSYMBOL_IFX = 22,                       /* IFX  */
+  YYSYMBOL_23_ = 23,                       /* '['  */
+  YYSYMBOL_24_ = 24,                       /* ']'  */
+  YYSYMBOL_25_ = 25,                       /* '('  */
+  YYSYMBOL_26_ = 26,                       /* ')'  */
+  YYSYMBOL_27_ = 27,                       /* '{'  */
+  YYSYMBOL_28_ = 28,                       /* '}'  */
+  YYSYMBOL_29_ = 29,                       /* ';'  */
+  YYSYMBOL_YYACCEPT = 30,                  /* $accept  */
+  YYSYMBOL_program = 31,                   /* program  */
+  YYSYMBOL_stmt = 32,                      /* stmt  */
+  YYSYMBOL_print_arg = 33,                 /* print_arg  */
+  YYSYMBOL_list = 34,                      /* list  */
+  YYSYMBOL_exp = 35                        /* exp  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -964,21 +775,21 @@ union yyalloc
 #endif /* !YYCOPY_NEEDED */
 
 /* YYFINAL -- State number of the termination state.  */
-#define YYFINAL  9
+#define YYFINAL  2
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   104
+#define YYLAST   149
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  31
+#define YYNTOKENS  30
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  7
+#define YYNNTS  6
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  22
+#define YYNRULES  32
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  54
+#define YYNSTATES  76
 
 /* YYMAXUTOK -- Last valid token kind.  */
-#define YYMAXUTOK   275
+#define YYMAXUTOK   272
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
@@ -996,15 +807,15 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-      27,    28,    22,    20,     2,    21,     2,    23,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,    19,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,    24,     2,     2,     2,     2,     2,
+      25,    26,    19,    17,     2,    18,     2,    20,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,    29,
+       2,    16,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,    29,     2,    30,     2,     2,     2,     2,
+       2,    23,     2,    24,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,    27,     2,    28,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -1019,16 +830,17 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
        5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
-      15,    16,    17,    18,    25,    26
+      15,    21,    22
 };
 
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   464,   464,   467,   468,   471,   472,   475,   476,   477,
-     478,   479,   482,   483,   486,   487,   488,   489,   490,   491,
-     492,   493,   494
+       0,   347,   347,   348,   349,   352,   353,   354,   355,   356,
+     357,   358,   359,   360,   361,   362,   363,   364,   365,   368,
+     369,   372,   373,   376,   377,   378,   379,   380,   381,   382,
+     383,   384,   385
 };
 #endif
 
@@ -1044,11 +856,11 @@ static const char *yysymbol_name (yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
 {
-  "\"end of file\"", "error", "\"invalid token\"", "NUM", "VAR", "TEXTO",
-  "STRING", "CMP", "SIMB", "INICIO", "FIM", "IF", "ELSE", "WHILE", "PRINT",
-  "DECL", "SCAN", "PRINTT", "SCANS", "'='", "'+'", "'-'", "'*'", "'/'",
-  "'^'", "NEG", "IFX", "'('", "')'", "'{'", "'}'", "$accept", "val",
-  "prog", "funcao", "stmt", "list", "exp", YY_NULLPTR
+  "\"end of file\"", "error", "\"invalid token\"", "NUM", "VARS",
+  "STRING_LITERAL", "FIM", "IF", "ELSE", "WHILE", "PRINT", "SCAN", "INT",
+  "FLOAT", "STRING", "CMP", "'='", "'+'", "'-'", "'*'", "'/'", "NEG",
+  "IFX", "'['", "']'", "'('", "')'", "'{'", "'}'", "';'", "$accept",
+  "program", "stmt", "print_arg", "list", "exp", YY_NULLPTR
 };
 
 static const char *
@@ -1058,7 +870,7 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-31)
+#define YYPACT_NINF (-49)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
@@ -1072,12 +884,14 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      -7,    90,     3,   -15,   -20,     7,     9,    70,   -31,   -31,
-      26,    26,    26,    19,   -31,   -31,   -31,   -31,    26,    26,
-      69,    43,    47,   -31,    -8,    69,    17,    65,    26,    26,
-      26,    26,    26,     8,    23,   -31,   -31,    69,    10,    10,
-      17,    17,    90,    90,   -31,    -3,     1,    14,   -31,   -31,
-      27,    90,     5,   -31
+     -49,    37,   -49,     8,   -49,   -20,    -4,    -3,     7,    29,
+      32,    34,   -49,   -49,    75,    50,    50,    50,    78,    35,
+      17,    19,   -49,   -49,    33,   -49,    50,    50,   -11,   117,
+      87,    97,   -49,    39,   -11,    58,    82,    84,    50,   -49,
+     107,    50,    50,    50,    50,    50,    47,    65,    67,   -49,
+     -49,    73,    74,   125,   -49,   -49,    71,    71,    80,    80,
+      50,   -49,   -49,   -49,   -49,   -49,   -11,     6,    48,    91,
+     -49,   -49,    81,   -49,    60,   -49
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -1085,24 +899,26 @@ static const yytype_int8 yypact[] =
    means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       0,     0,     0,     0,     0,     0,     0,     0,     3,     1,
-       0,     0,     0,     0,     2,     4,    21,    22,     0,     0,
-      10,     0,     0,     5,     0,     6,    20,     0,     0,     0,
-       0,     0,     0,     0,     0,    11,    19,    18,    14,    15,
-      16,    17,     0,     0,    12,     0,     0,     7,    13,     9,
-       0,     0,     0,     8
+       2,     0,     1,     0,     3,     0,     0,     0,     0,     0,
+       0,     0,    18,     4,     0,     0,     0,     0,     0,     0,
+       8,     9,    10,    23,    24,     6,     0,     0,     5,     0,
+       0,     0,    20,     0,    19,     0,     0,     0,     0,    32,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,    13,
+      14,     0,     0,     0,    31,    30,    26,    27,    28,    29,
+       0,    21,    21,    11,    12,    25,     7,     0,     0,    15,
+      22,    17,     0,    21,     0,    16
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -31,   -31,   -31,   -31,    -1,   -30,    30
+     -49,   -49,   100,   -49,   -48,   -15
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     2,     7,    24,    44,    45,    20
+       0,     1,    70,    33,    67,    28
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -1110,60 +926,72 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-       8,     3,     1,     9,    10,     3,    15,    11,     4,     3,
-       5,     6,     4,    46,     5,     6,     4,    28,     5,     6,
-      35,    52,    16,    17,    28,    23,    50,    47,     0,    16,
-      17,    49,    31,    32,    12,    53,    13,    42,     0,     0,
-      18,    21,    22,    25,    48,    48,    19,    18,    26,    27,
-      28,    48,    43,    19,    28,     0,    51,     0,    37,    38,
-      39,    40,    41,    29,    30,    31,    32,    29,    30,    31,
-      32,    33,    28,     0,     3,    34,    28,     0,     0,     0,
-      14,     4,     0,     5,     6,    29,    30,    31,    32,    29,
-      30,    31,    32,    36,     3,     0,     0,     0,     0,     0,
-       0,     4,     0,     5,     6
+      29,    30,    31,    34,    41,    16,    42,    43,    44,    45,
+       3,    39,    40,     5,    68,     6,     7,     8,     9,    10,
+      11,    17,    18,    53,    14,    74,    55,    56,    57,    58,
+      59,    15,    19,    20,    69,    12,    21,     2,    22,    35,
+      36,     3,    37,     4,     5,    66,     6,     7,     8,     9,
+      10,    11,     3,    23,    24,     5,    38,     6,     7,     8,
+       9,    10,    11,    60,     3,    49,    12,     5,    26,     6,
+       7,     8,     9,    10,    11,    27,    71,    12,    23,    24,
+      25,    23,    24,    32,    50,    51,    41,    52,    75,    12,
+      44,    45,    61,    26,    62,    41,    26,    63,    64,    72,
+      27,    13,    41,    27,    42,    43,    44,    45,    73,     0,
+       0,     0,    41,    47,    42,    43,    44,    45,     0,     0,
+       0,     0,    41,    48,    42,    43,    44,    45,     0,     0,
+       0,     0,    41,    54,    42,    43,    44,    45,     0,     0,
+      41,    46,    42,    43,    44,    45,     0,     0,     0,    65
 };
 
 static const yytype_int8 yycheck[] =
 {
-       1,     4,     9,     0,    19,     4,     7,    27,    11,     4,
-      13,    14,    11,    43,    13,    14,    11,     7,    13,    14,
-      28,    51,     3,     4,     7,     6,    12,    30,    -1,     3,
-       4,    30,    22,    23,    27,    30,    27,    29,    -1,    -1,
-      21,    11,    12,    13,    45,    46,    27,    21,    18,    19,
-       7,    52,    29,    27,     7,    -1,    29,    -1,    28,    29,
-      30,    31,    32,    20,    21,    22,    23,    20,    21,    22,
-      23,    28,     7,    -1,     4,    28,     7,    -1,    -1,    -1,
-      10,    11,    -1,    13,    14,    20,    21,    22,    23,    20,
-      21,    22,    23,    28,     4,    -1,    -1,    -1,    -1,    -1,
-      -1,    11,    -1,    13,    14
+      15,    16,    17,    18,    15,    25,    17,    18,    19,    20,
+       4,    26,    27,     7,    62,     9,    10,    11,    12,    13,
+      14,    25,    25,    38,    16,    73,    41,    42,    43,    44,
+      45,    23,    25,     4,    28,    29,     4,     0,     4,     4,
+      23,     4,    23,     6,     7,    60,     9,    10,    11,    12,
+      13,    14,     4,     3,     4,     7,    23,     9,    10,    11,
+      12,    13,    14,    16,     4,    26,    29,     7,    18,     9,
+      10,    11,    12,    13,    14,    25,    28,    29,     3,     4,
+       5,     3,     4,     5,    26,     3,    15,     3,    28,    29,
+      19,    20,    27,    18,    27,    15,    18,    24,    24,     8,
+      25,     1,    15,    25,    17,    18,    19,    20,    27,    -1,
+      -1,    -1,    15,    26,    17,    18,    19,    20,    -1,    -1,
+      -1,    -1,    15,    26,    17,    18,    19,    20,    -1,    -1,
+      -1,    -1,    15,    26,    17,    18,    19,    20,    -1,    -1,
+      15,    24,    17,    18,    19,    20,    -1,    -1,    -1,    24
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,     9,    32,     4,    11,    13,    14,    33,    35,     0,
-      19,    27,    27,    27,    10,    35,     3,     4,    21,    27,
-      37,    37,    37,     6,    34,    37,    37,    37,     7,    20,
-      21,    22,    23,    28,    28,    28,    28,    37,    37,    37,
-      37,    37,    29,    29,    35,    36,    36,    30,    35,    30,
-      12,    29,    36,    30
+       0,    31,     0,     4,     6,     7,     9,    10,    11,    12,
+      13,    14,    29,    32,    16,    23,    25,    25,    25,    25,
+       4,     4,     4,     3,     4,     5,    18,    25,    35,    35,
+      35,    35,     5,    33,    35,     4,    23,    23,    23,    35,
+      35,    15,    17,    18,    19,    20,    24,    26,    26,    26,
+      26,     3,     3,    35,    26,    35,    35,    35,    35,    35,
+      16,    27,    27,    24,    24,    24,    35,    34,    34,    28,
+      32,    28,     8,    27,    34,    28
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
-       0,    31,    32,    33,    33,    34,    34,    35,    35,    35,
-      35,    35,    36,    36,    37,    37,    37,    37,    37,    37,
-      37,    37,    37
+       0,    30,    31,    31,    31,    32,    32,    32,    32,    32,
+      32,    32,    32,    32,    32,    32,    32,    32,    32,    33,
+      33,    34,    34,    35,    35,    35,    35,    35,    35,    35,
+      35,    35,    35
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
-       0,     2,     3,     1,     2,     1,     1,     7,    11,     7,
-       3,     4,     1,     2,     3,     3,     3,     3,     3,     3,
-       2,     1,     1
+       0,     2,     0,     2,     2,     3,     3,     6,     2,     2,
+       2,     5,     5,     4,     4,     7,    11,     7,     1,     1,
+       1,     0,     2,     1,     1,     4,     3,     3,     3,     3,
+       3,     3,     2
 };
 
 
@@ -1626,128 +1454,182 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-  case 3: /* prog: stmt  */
-#line 467 "aula5.y"
-                        {eval((yyvsp[0].a));}
+  case 4: /* program: program stmt  */
+#line 349 "aula5.y"
+                   { if ((yyvsp[0].a)) eval((yyvsp[0].a)); }
+#line 1461 "aula5.tab.c"
+    break;
+
+  case 5: /* stmt: VARS '=' exp  */
+#line 352 "aula5.y"
+                   { (yyval.a) = newasgn((yyvsp[-2].str), (yyvsp[0].a)); }
+#line 1467 "aula5.tab.c"
+    break;
+
+  case 6: /* stmt: VARS '=' STRING_LITERAL  */
+#line 353 "aula5.y"
+                              { (yyval.a) = newasgn((yyvsp[-2].str), newtext('s', (yyvsp[0].str))); }
+#line 1473 "aula5.tab.c"
+    break;
+
+  case 7: /* stmt: VARS '[' exp ']' '=' exp  */
+#line 354 "aula5.y"
+                               { (yyval.a) = newasgn_a((yyvsp[-5].str), (yyvsp[0].a), (yyvsp[-3].a)); }
+#line 1479 "aula5.tab.c"
+    break;
+
+  case 8: /* stmt: INT VARS  */
+#line 355 "aula5.y"
+                   { l1 = ins(l1, (yyvsp[0].str), 1); (yyval.a) = NULL; }
+#line 1485 "aula5.tab.c"
+    break;
+
+  case 9: /* stmt: FLOAT VARS  */
+#line 356 "aula5.y"
+                   { l1 = ins(l1, (yyvsp[0].str), 1); (yyval.a) = NULL; }
+#line 1491 "aula5.tab.c"
+    break;
+
+  case 10: /* stmt: STRING VARS  */
+#line 357 "aula5.y"
+                  { l1 = ins(l1, (yyvsp[0].str), 2); (yyval.a) = NULL; }
+#line 1497 "aula5.tab.c"
+    break;
+
+  case 11: /* stmt: INT VARS '[' NUM ']'  */
+#line 358 "aula5.y"
+                             { (yyval.a) = newarray('a', (yyvsp[-3].str), (int)(yyvsp[-1].flo)); }
+#line 1503 "aula5.tab.c"
+    break;
+
+  case 12: /* stmt: FLOAT VARS '[' NUM ']'  */
+#line 359 "aula5.y"
+                             { (yyval.a) = newarray('a', (yyvsp[-3].str), (int)(yyvsp[-1].flo)); }
+#line 1509 "aula5.tab.c"
+    break;
+
+  case 13: /* stmt: PRINT '(' print_arg ')'  */
+#line 360 "aula5.y"
+                              { (yyval.a) = newast('P', (yyvsp[-1].a), NULL); }
+#line 1515 "aula5.tab.c"
+    break;
+
+  case 14: /* stmt: SCAN '(' VARS ')'  */
+#line 361 "aula5.y"
+                        { (yyval.a) = newvari('S', (yyvsp[-1].str)); }
+#line 1521 "aula5.tab.c"
+    break;
+
+  case 15: /* stmt: IF '(' exp ')' '{' list '}'  */
+#line 362 "aula5.y"
+                                            { (yyval.a) = newflow('I', (yyvsp[-4].a), (yyvsp[-1].a), NULL); }
+#line 1527 "aula5.tab.c"
+    break;
+
+  case 16: /* stmt: IF '(' exp ')' '{' list '}' ELSE '{' list '}'  */
+#line 363 "aula5.y"
+                                                    { (yyval.a) = newflow('I', (yyvsp[-8].a), (yyvsp[-5].a), (yyvsp[-1].a)); }
+#line 1533 "aula5.tab.c"
+    break;
+
+  case 17: /* stmt: WHILE '(' exp ')' '{' list '}'  */
+#line 364 "aula5.y"
+                                     { (yyval.a) = newflow('W', (yyvsp[-4].a), (yyvsp[-1].a), NULL); }
+#line 1539 "aula5.tab.c"
+    break;
+
+  case 18: /* stmt: ';'  */
+#line 365 "aula5.y"
+          { (yyval.a) = NULL; }
+#line 1545 "aula5.tab.c"
+    break;
+
+  case 19: /* print_arg: exp  */
+#line 368 "aula5.y"
+                           { (yyval.a) = (yyvsp[0].a); }
+#line 1551 "aula5.tab.c"
+    break;
+
+  case 20: /* print_arg: STRING_LITERAL  */
+#line 369 "aula5.y"
+                           { (yyval.a) = newtext('s', (yyvsp[0].str)); }
+#line 1557 "aula5.tab.c"
+    break;
+
+  case 21: /* list: %empty  */
+#line 372 "aula5.y"
+      { (yyval.a) = NULL; }
+#line 1563 "aula5.tab.c"
+    break;
+
+  case 22: /* list: list stmt  */
+#line 373 "aula5.y"
+                { (yyval.a) = newast('L', (yyvsp[-1].a), (yyvsp[0].a)); }
+#line 1569 "aula5.tab.c"
+    break;
+
+  case 23: /* exp: NUM  */
+#line 376 "aula5.y"
+         { (yyval.a) = newnum((yyvsp[0].flo)); }
+#line 1575 "aula5.tab.c"
+    break;
+
+  case 24: /* exp: VARS  */
+#line 377 "aula5.y"
+           { (yyval.a) = newValorVal((yyvsp[0].str)); }
+#line 1581 "aula5.tab.c"
+    break;
+
+  case 25: /* exp: VARS '[' exp ']'  */
+#line 378 "aula5.y"
+                       { (yyval.a) = newValorVal_a((yyvsp[-3].str), (yyvsp[-1].a)); }
+#line 1587 "aula5.tab.c"
+    break;
+
+  case 26: /* exp: exp '+' exp  */
+#line 379 "aula5.y"
+                  { (yyval.a) = newast('+', (yyvsp[-2].a), (yyvsp[0].a)); }
+#line 1593 "aula5.tab.c"
+    break;
+
+  case 27: /* exp: exp '-' exp  */
+#line 380 "aula5.y"
+                  { (yyval.a) = newast('-', (yyvsp[-2].a), (yyvsp[0].a)); }
+#line 1599 "aula5.tab.c"
+    break;
+
+  case 28: /* exp: exp '*' exp  */
+#line 381 "aula5.y"
+                  { (yyval.a) = newast('*', (yyvsp[-2].a), (yyvsp[0].a)); }
+#line 1605 "aula5.tab.c"
+    break;
+
+  case 29: /* exp: exp '/' exp  */
+#line 382 "aula5.y"
+                  { (yyval.a) = newast('/', (yyvsp[-2].a), (yyvsp[0].a)); }
+#line 1611 "aula5.tab.c"
+    break;
+
+  case 30: /* exp: exp CMP exp  */
+#line 383 "aula5.y"
+                  { (yyval.a) = newcmp((yyvsp[-1].fn), (yyvsp[-2].a), (yyvsp[0].a)); }
+#line 1617 "aula5.tab.c"
+    break;
+
+  case 31: /* exp: '(' exp ')'  */
+#line 384 "aula5.y"
+                  { (yyval.a) = (yyvsp[-1].a); }
+#line 1623 "aula5.tab.c"
+    break;
+
+  case 32: /* exp: '-' exp  */
+#line 385 "aula5.y"
+                        { (yyval.a) = newast('M', (yyvsp[0].a), NULL); }
+#line 1629 "aula5.tab.c"
+    break;
+
+
 #line 1633 "aula5.tab.c"
-    break;
-
-  case 4: /* prog: prog stmt  */
-#line 468 "aula5.y"
-                    {eval((yyvsp[0].a));}
-#line 1639 "aula5.tab.c"
-    break;
-
-  case 5: /* funcao: STRING  */
-#line 471 "aula5.y"
-               {printf("%s\n",(yyvsp[0].str));}
-#line 1645 "aula5.tab.c"
-    break;
-
-  case 6: /* funcao: exp  */
-#line 472 "aula5.y"
-              {double result = eval((yyvsp[0].a)); printf("%.2f\n",result);}
-#line 1651 "aula5.tab.c"
-    break;
-
-  case 7: /* stmt: IF '(' exp ')' '{' list '}'  */
-#line 475 "aula5.y"
-                                            {(yyval.a) = newflow('I', (yyvsp[-4].a), (yyvsp[-1].a), NULL);}
-#line 1657 "aula5.tab.c"
-    break;
-
-  case 8: /* stmt: IF '(' exp ')' '{' list '}' ELSE '{' list '}'  */
-#line 476 "aula5.y"
-                                                        {(yyval.a) = newflow('I', (yyvsp[-8].a), (yyvsp[-5].a), (yyvsp[-1].a));}
-#line 1663 "aula5.tab.c"
-    break;
-
-  case 9: /* stmt: WHILE '(' exp ')' '{' list '}'  */
-#line 477 "aula5.y"
-                                         {(yyval.a) = newflow('W', (yyvsp[-4].a), (yyvsp[-1].a), NULL);}
-#line 1669 "aula5.tab.c"
-    break;
-
-  case 10: /* stmt: VAR '=' exp  */
-#line 478 "aula5.y"
-                      {(yyval.a) = newasgn((yyvsp[-2].str),(yyvsp[0].a));}
-#line 1675 "aula5.tab.c"
-    break;
-
-  case 11: /* stmt: PRINT '(' funcao ')'  */
-#line 479 "aula5.y"
-                               { (yyval.a) = newast('P',(yyvsp[-1].a),NULL);}
-#line 1681 "aula5.tab.c"
-    break;
-
-  case 12: /* list: stmt  */
-#line 482 "aula5.y"
-          {(yyval.a) = (yyvsp[0].a);}
-#line 1687 "aula5.tab.c"
-    break;
-
-  case 13: /* list: list stmt  */
-#line 483 "aula5.y"
-                    { (yyval.a) = newast('L', (yyvsp[-1].a), (yyvsp[0].a));}
-#line 1693 "aula5.tab.c"
-    break;
-
-  case 14: /* exp: exp '+' exp  */
-#line 486 "aula5.y"
-                 {(yyval.a) = newast('+',(yyvsp[-2].a),(yyvsp[0].a));}
-#line 1699 "aula5.tab.c"
-    break;
-
-  case 15: /* exp: exp '-' exp  */
-#line 487 "aula5.y"
-                      {(yyval.a) = newast('-',(yyvsp[-2].a),(yyvsp[0].a));}
-#line 1705 "aula5.tab.c"
-    break;
-
-  case 16: /* exp: exp '*' exp  */
-#line 488 "aula5.y"
-                      {(yyval.a) = newast('*',(yyvsp[-2].a),(yyvsp[0].a));}
-#line 1711 "aula5.tab.c"
-    break;
-
-  case 17: /* exp: exp '/' exp  */
-#line 489 "aula5.y"
-                      {(yyval.a) = newast('/',(yyvsp[-2].a),(yyvsp[0].a));}
-#line 1717 "aula5.tab.c"
-    break;
-
-  case 18: /* exp: exp CMP exp  */
-#line 490 "aula5.y"
-                      {(yyval.a) = newcmp((yyvsp[-1].fn),(yyvsp[-2].a),(yyvsp[0].a));}
-#line 1723 "aula5.tab.c"
-    break;
-
-  case 19: /* exp: '(' exp ')'  */
-#line 491 "aula5.y"
-                      {(yyval.a) = (yyvsp[-1].a);}
-#line 1729 "aula5.tab.c"
-    break;
-
-  case 20: /* exp: '-' exp  */
-#line 492 "aula5.y"
-                            {(yyval.a) = newast('M',(yyvsp[0].a),NULL);}
-#line 1735 "aula5.tab.c"
-    break;
-
-  case 21: /* exp: NUM  */
-#line 493 "aula5.y"
-              {(yyval.a) = newnum((yyvsp[0].flo));}
-#line 1741 "aula5.tab.c"
-    break;
-
-  case 22: /* exp: VAR  */
-#line 494 "aula5.y"
-              {(yyval.a) = newValorVal((yyvsp[0].str));}
-#line 1747 "aula5.tab.c"
-    break;
-
-
-#line 1751 "aula5.tab.c"
 
       default: break;
     }
@@ -1940,19 +1822,18 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 497 "aula5.y"
+#line 388 "aula5.y"
+
 
 #include "lex.yy.c"
 
 int main() {
-    extern FILE *yyin;
     yyin = fopen("entrada.txt", "r");
     if (!yyin) {
-        printf("Erro ao abrir arquivo\n");
+        printf("Nao foi possivel abrir o arquivo 'entrada.txt'\n");
         return 1;
     }
     yyparse();
     fclose(yyin);
-    free_vars(l1);
     return 0;
 }

@@ -1,80 +1,189 @@
-INICIO
-var a
-var vetor[10]
+// Problema de Média
+float notaum;
+float notadois;
+float notatres;
+float media;
 
-a = 100
-vetor[4] = 30
+PRINT("--- Problema de Media ---");
 
-vetor[3] = a
-vetor[2] = vetor[4] * 2
+PRINT("Digite a primeira nota:");
+LER(notaum);
 
-PRINT (a)
-PRINT (vetor[4])
-PRINT (vetor[3])
-PRINT (vetor[2])
+PRINT("Digite a segunda nota:");
+LER(notadois);
 
-IF (vetor[4] < vetor[3]){
-    PRINT (vetor[4])
-}
-ELSE{
-    PRINT (vetor[3])
-}
-	
-FIM
+PRINT("Digite a terceira nota:");
+LER(notatres);
+
+media = (notaum + notadois + notatres) / 3.0;
+
+PRINT("A media do aluno e:");
+PRINT(media);
 
 
 
-INICIO
 
-x = 10
-y = 20.5
-z = x + y
+//  Problema de Lógica
+string nome;
+int idade;
 
-PRINT(z)
-PRINT("Resultado da soma")
+PRINT("--- Problema de Logica ---");
 
-IF (x > 5) {
-    PRINT("x eh maior que 5")
-    PRINT(x)
-}
+PRINT("Qual o seu nome?");
+LER(nome);
+PRINT("Qual a sua idade?");
+LER(idade);
 
-IF (y < 100) {
-    PRINT("y eh menor que 100")
+IF (idade >= 18) {
+    PRINT("Resultado:");
+    PRINT(nome);
+    PRINT("e maior de idade.");
 } ELSE {
-    PRINT("y eh maior ou igual a 100")
+    PRINT("Resultado:");
+    PRINT(nome);
+    PRINT("e menor de idade.");
 }
 
-contador = 1
-WHILE (contador <= 3) {
-    PRINT("Contador:")
-    PRINT(contador)
-    contador = contador + 1
+
+
+
+// Problema de Classificação 
+int numero;
+
+PRINT("--- Problema de Classificacao ---");
+PRINT("Digite um numero qualquer para classifica-lo:");
+LER(numero); 
+
+PRINT("O numero digitado foi:");
+PRINT(numero);
+
+IF (numero > 0) {
+    PRINT("Classificacao: O numero e positivo.");
+} ELSE {
+    IF (numero < 0) {
+        PRINT("Classificacao: O numero e negativo.");
+    } ELSE {
+        PRINT("Classificacao: O numero e zero.");
+    }
 }
 
-resultado = (x * 2) + (y / 2)
-PRINT("Resultado da expressao complexa:")
-PRINT(resultado)
 
-teste1 = 15
-teste2 = 15
-IF (teste1 == teste2) {
-    PRINT("Numeros sao iguais")
+
+
+
+// Equação do Segundo Grau
+float a;
+float b;
+float c;
+float delta;
+float x;
+
+PRINT("--- Equacao do Segundo Grau ---");
+PRINT("Coeficientes da equacao do segundo grau:");
+
+PRINT("Digite o valor do coeficiente 'a':");
+LER(a);
+PRINT("Digite o valor do coeficiente 'b':");
+LER(b);
+PRINT("Digite o valor do coeficiente 'c':");
+LER(c);
+
+delta = (b * b) - (4 * a * c);
+
+PRINT("O valor de delta e:");
+PRINT(delta);
+
+IF (delta > 0) {
+    PRINT("A equacao possui duas raizes reais e distintas.");
+} ELSE {
+    IF (delta == 0) {
+        PRINT("A equacao possui uma raiz real.");
+        x = -b / (2 * a);
+        PRINT("Raiz:");
+        PRINT(x);
+    } ELSE {
+        PRINT("A equacao nao possui raizes reais.");
+    }
 }
 
-IF (teste1 >= 10) {
-    PRINT("teste1 eh maior ou igual a 10")
+
+
+
+
+
+// Soma e Média de Notas em um Vetor
+
+PRINT("--- Teste de Soma e Media de Notas ---");
+
+float notas[4]; 
+float soma;
+float temp;
+int i;
+
+// Preenche vetor
+i = 0;
+soma = 0;
+PRINT("Digite as 4 notas do aluno:");
+WHILE (i < 4) {
+    PRINT("Digite uma nota:");
+    LER(temp);       
+    notas[i] = temp;   
+    i = i + 1;
 }
 
-IF (teste1 != 20) {
-    PRINT("teste1 eh diferente de 20")
+// somar os valores do vetor
+i = 0;
+PRINT("As notas digitadas foram:");
+WHILE (i < 4) {
+    PRINT(notas[i]);
+    soma = soma + notas[i];
+    i = i + 1;
 }
 
-valor_negativo = -25
-PRINT("Valor negativo:")
-PRINT(valor_negativo)
+PRINT("A soma das notas e:");
+PRINT(soma);
+PRINT("A media do aluno e:");
+PRINT(soma / 4.0);
 
-expressao = 10 + 5 * 2 - 3 / 1
-PRINT("Resultado da expressao matematica:")
-PRINT(expressao)
+
+
+
+
+// Maior Número em um Vetor
+
+PRINT("--- Teste de Encontrar Maior Numero ---");
+
+int numeros[5];
+int contador;
+int maximo;
+
+numeros[0] = 15;
+numeros[1] = 99;
+numeros[2] = 8;
+numeros[3] = 42;
+numeros[4] = 98;
+
+PRINT("Vetor a ser analisado:");
+PRINT(numeros[0]);
+PRINT(numeros[1]);
+PRINT(numeros[2]);
+PRINT(numeros[3]);
+PRINT(numeros[4]);
+
+
+// encontrar o maior valor
+contador = 1;
+maximo = numeros[0];
+
+WHILE (contador < 5) {
+    IF (numeros[contador] > maximo) {
+        maximo = numeros[contador];
+    }
+    contador = contador + 1;
+}
+
+PRINT("O maior numero encontrado no vetor e:");
+PRINT(maximo);
+
 
 FIM
