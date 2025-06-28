@@ -43,14 +43,10 @@ STRING_LITERAL \"[^"]*\"
 {NUM} {
     yylval.flo = atof(yytext);
     return NUM;
-    yylval.flo = atof(yytext);
-    return NUM;
 }
 
 [-+()=/*^{};\[\]] {return *yytext;}
 
-">" {yylval.fn = 1; return CMP; }
-"<" {yylval.fn = 2; return CMP; }
 ">" {yylval.fn = 1; return CMP; }
 "<" {yylval.fn = 2; return CMP; }
 "<>" {yylval.fn = 3; return CMP; }

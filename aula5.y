@@ -8,7 +8,6 @@
 // 1 - números (int/float), 2 - string, 3 - vetor
 typedef struct vars {
     int nodetype;
-    int nodetype;
     char name[50];
     double valor;
     char valors[50];
@@ -56,10 +55,6 @@ typedef struct ast {
     struct ast *l;
     struct ast *r;
 } Ast;
-    int nodetype;
-    struct ast *l;
-    struct ast *r;
-} Ast;
 
 typedef struct numval {
     int nodetype;
@@ -80,11 +75,6 @@ typedef struct texto {
 } TXT;
 
 typedef struct flow {
-    int nodetype;
-    Ast *cond;
-    Ast *tl;
-    Ast *el;
-} Flow;
     int nodetype;
     Ast *cond;
     Ast *tl;
