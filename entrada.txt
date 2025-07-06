@@ -1,189 +1,43 @@
-// Problema de Média
-float notaum;
-float notadois;
-float notatres;
-float media;
 
-PRINT("--- Problema de Media ---");
+int codigo
+string produto
+float preco
+int quantidade
+int opcao
+int estoque[10]  // Vetor para 10 produtos
 
-PRINT("Digite a primeira nota:");
-LER(notaum);
+escreva("Sistema de Estoque - Digite:")
+escreva("1 para cadastrar produto")
+escreva("2 para consultar estoque")
+escreva("3 para sair")
 
-PRINT("Digite a segunda nota:");
-LER(notadois);
+leia(opcao)
 
-PRINT("Digite a terceira nota:");
-LER(notatres);
-
-media = (notaum + notadois + notatres) / 3.0;
-
-PRINT("A media do aluno e:");
-PRINT(media);
-
-
-
-
-//  Problema de Lógica
-string nome;
-int idade;
-
-PRINT("--- Problema de Logica ---");
-
-PRINT("Qual o seu nome?");
-LER(nome);
-PRINT("Qual a sua idade?");
-LER(idade);
-
-IF (idade >= 18) {
-    PRINT("Resultado:");
-    PRINT(nome);
-    PRINT("e maior de idade.");
-} ELSE {
-    PRINT("Resultado:");
-    PRINT(nome);
-    PRINT("e menor de idade.");
-}
-
-
-
-
-// Problema de Classificação 
-int numero;
-
-PRINT("--- Problema de Classificacao ---");
-PRINT("Digite um numero qualquer para classifica-lo:");
-LER(numero); 
-
-PRINT("O numero digitado foi:");
-PRINT(numero);
-
-IF (numero > 0) {
-    PRINT("Classificacao: O numero e positivo.");
-} ELSE {
-    IF (numero < 0) {
-        PRINT("Classificacao: O numero e negativo.");
-    } ELSE {
-        PRINT("Classificacao: O numero e zero.");
+enquanto(opcao != 3) {
+    se(opcao == 1) {
+        escreva("Digite o codigo (0-9):")
+        leia(codigo)
+        escreva("Digite o nome:")
+        leia(produto)
+        escreva("Digite o preco:")
+        leia(preco)
+        escreva("Digite a quantidade:")
+        leia(quantidade)
+        
+        estoque[codigo] = quantidade
+        escreva("Produto cadastrado!")
     }
-}
-
-
-
-
-
-// Equação do Segundo Grau
-float a;
-float b;
-float c;
-float delta;
-float x;
-
-PRINT("--- Equacao do Segundo Grau ---");
-PRINT("Coeficientes da equacao do segundo grau:");
-
-PRINT("Digite o valor do coeficiente 'a':");
-LER(a);
-PRINT("Digite o valor do coeficiente 'b':");
-LER(b);
-PRINT("Digite o valor do coeficiente 'c':");
-LER(c);
-
-delta = (b * b) - (4 * a * c);
-
-PRINT("O valor de delta e:");
-PRINT(delta);
-
-IF (delta > 0) {
-    PRINT("A equacao possui duas raizes reais e distintas.");
-} ELSE {
-    IF (delta == 0) {
-        PRINT("A equacao possui uma raiz real.");
-        x = -b / (2 * a);
-        PRINT("Raiz:");
-        PRINT(x);
-    } ELSE {
-        PRINT("A equacao nao possui raizes reais.");
+    
+    se(opcao == 2) {
+        escreva("Digite o codigo para consulta (0-9):")
+        leia(codigo)
+        escreva("Estoque atual:")
+        escreva(estoque[codigo])
     }
+    
+    escreva("Digite nova opcao (1-3):")
+    leia(opcao)
 }
 
-
-
-
-
-
-// Soma e Média de Notas em um Vetor
-
-PRINT("--- Teste de Soma e Media de Notas ---");
-
-float notas[4]; 
-float soma;
-float temp;
-int i;
-
-// Preenche vetor
-i = 0;
-soma = 0;
-PRINT("Digite as 4 notas do aluno:");
-WHILE (i < 4) {
-    PRINT("Digite uma nota:");
-    LER(temp);       
-    notas[i] = temp;   
-    i = i + 1;
-}
-
-// somar os valores do vetor
-i = 0;
-PRINT("As notas digitadas foram:");
-WHILE (i < 4) {
-    PRINT(notas[i]);
-    soma = soma + notas[i];
-    i = i + 1;
-}
-
-PRINT("A soma das notas e:");
-PRINT(soma);
-PRINT("A media do aluno e:");
-PRINT(soma / 4.0);
-
-
-
-
-
-// Maior Número em um Vetor
-
-PRINT("--- Teste de Encontrar Maior Numero ---");
-
-int numeros[5];
-int contador;
-int maximo;
-
-numeros[0] = 15;
-numeros[1] = 99;
-numeros[2] = 8;
-numeros[3] = 42;
-numeros[4] = 98;
-
-PRINT("Vetor a ser analisado:");
-PRINT(numeros[0]);
-PRINT(numeros[1]);
-PRINT(numeros[2]);
-PRINT(numeros[3]);
-PRINT(numeros[4]);
-
-
-// encontrar o maior valor
-contador = 1;
-maximo = numeros[0];
-
-WHILE (contador < 5) {
-    IF (numeros[contador] > maximo) {
-        maximo = numeros[contador];
-    }
-    contador = contador + 1;
-}
-
-PRINT("O maior numero encontrado no vetor e:");
-PRINT(maximo);
-
-
+escreva("Sistema encerrado!")
 FIM
