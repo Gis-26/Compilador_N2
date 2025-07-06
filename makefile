@@ -1,8 +1,15 @@
-all: aula5.l aula5.y
-	flex aula5.l
-	bison -d aula5.y
-	gcc aula5.tab.c -o analisador -lm
-	./analisador
+COMPILER_NAME = lion
+SOURCE_FILES = lion.l lion.y
+INPUT_EXT = .rei
+OUTPUT_EXEC = lion
+
+all: $(SOURCE_FILES)
+	flex lion.l
+	bison -d lion.y
+	gcc lion.tab.c -o $(OUTPUT_EXEC) -lm
+	./$(OUTPUT_EXEC)
+
+run: all
 
 clean:
-	rm -f analisador lex.yy.c aula5.tab.c aula5.tab.h
+	rm -f $(OUTPUT_EXEC) lex.yy.c lion.tab.c lion.tab.h
