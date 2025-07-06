@@ -16,6 +16,7 @@ FLOAT "float"
 STRING "string"
 STRING_LITERAL \"[^"]*\" 
 INICIO "INICIO"
+RAIZ "raiz" 
 
 %%
 "//"[^\n]* {;} 
@@ -30,6 +31,7 @@ INICIO "INICIO"
 {FLOAT} {return FLOAT;}
 {STRING} {return STRING;}
 {INICIO} {return INICIO;}
+{RAIZ} {return RAIZ;}
 
 {VARS} {
     strcpy(yylval.str,yytext);

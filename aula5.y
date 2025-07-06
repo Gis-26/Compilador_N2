@@ -309,6 +309,14 @@ double eval(Ast *a) {
         }
         case 'a': l1 = ins_a(l1, ((Varval *)a)->var, ((Varval *)a)->size); break;
         case 's': break;
+         case 'Q': {
+            double arg = eval(a->l);
+            if (arg < 0) {
+                fprintf(stderr, "Erro: Raiz quadrada de numero negativo (%.2f).\n", arg);
+                exit(1);
+            }
+            v = sqrt(arg);
+            break;
         default: printf("internal error: bad node %c\n", a->nodetype);
     }
     return v;
@@ -330,7 +338,7 @@ void yyerror(char *s) { fprintf(stderr, "Erro sintatico: %s\n", s); }
 %token <flo>   NUM
 %token <str>   VARS
 %token <str>   STRING_LITERAL
-%token         FIM IF ELSE WHILE PRINT SCAN INT FLOAT STRING INICIO
+%token         FIM IF ELSE WHILE PRINT SCAN INT FLOAT STRING INICIO RAIZ 
 %token <fn>    CMP OR_OP AND_OP 
 
 %right '='
@@ -387,6 +395,7 @@ exp: NUM { $$ = newnum($1); }
     | exp CMP exp { $$ = newcmp($2, $1, $3); }
     | exp OR_OP exp { $$ = newast($2, $1, $3); }  
     | exp AND_OP exp { $$ = newast($2, $1, $3); }
+     | RAIZ '(' exp ')' { $$ = newast('Q', $3, NULL); }
     | '(' exp ')' { $$ = $2; }
     | '-' exp %prec NEG { $$ = newast('M', $2, NULL); }
     ;
