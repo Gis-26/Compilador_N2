@@ -1,4 +1,4 @@
-# Interpretador de Linguagem de Programação
+#Mini compilador (interpretador)
 
 Um interpretador simples desenvolvido em C usando Flex e Bison para análise léxica e sintática.
 
