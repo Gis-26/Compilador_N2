@@ -1,0 +1,50 @@
+//QUESTÃO 1048 - Aumento de salário
+
+// Declaração de variáveis
+float salario
+float novoSalario
+float reajuste
+float percentual
+
+// Leitura do salário
+leia(salario)
+
+// Verificação das faixas salariais e aplicação dos reajustes
+se (salario <= 400.00) {
+    percentual = 15.0
+    reajuste = salario * 0.15
+    novoSalario = salario + reajuste
+} senao {
+    se (salario <= 800.00) {
+        percentual = 12.0
+        reajuste = salario * 0.12
+        novoSalario = salario + reajuste
+    } senao {
+        se (salario <= 1200.00) {
+            percentual = 10.0
+            reajuste = salario * 0.10
+            novoSalario = salario + reajuste
+        } senao {
+            se (salario <= 2000.00) {
+                percentual = 7.0
+                reajuste = salario * 0.07
+                novoSalario = salario + reajuste
+            } senao {
+                percentual = 4.0
+                reajuste = salario * 0.04;
+                novoSalario = salario + reajuste
+            }
+        }
+    }
+}
+
+// Saída dos resultados
+escreva("Novo salario: ")
+escreva(novoSalario)
+escreva("Reajuste ganho: ")
+escreva(reajuste);
+escreva("Em percentual: ")
+escreva(percentual)
+escreva(" %")
+
+FIM

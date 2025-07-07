@@ -309,7 +309,7 @@ double eval(Ast *a) {
         }
         case 'a': l1 = ins_a(l1, ((Varval *)a)->var, ((Varval *)a)->size); break;
         case 's': break;
-         case 'Q': {
+        case 'Q': {
             double arg = eval(a->l);
             if (arg < 0) {
                 fprintf(stderr, "Erro: Raiz quadrada de numero negativo (%.2f).\n", arg);
@@ -317,6 +317,7 @@ double eval(Ast *a) {
             }
             v = sqrt(arg);
             break;
+        }
         default: printf("internal error: bad node %c\n", a->nodetype);
     }
     return v;
@@ -395,7 +396,7 @@ exp: NUM { $$ = newnum($1); }
     | exp CMP exp { $$ = newcmp($2, $1, $3); }
     | exp OR_OP exp { $$ = newast($2, $1, $3); }  
     | exp AND_OP exp { $$ = newast($2, $1, $3); }
-     | RAIZ '(' exp ')' { $$ = newast('Q', $3, NULL); }
+    | RAIZ '(' exp ')' { $$ = newast('Q', $3, NULL); }
     | '(' exp ')' { $$ = $2; }
     | '-' exp %prec NEG { $$ = newast('M', $2, NULL); }
     ;
@@ -405,7 +406,7 @@ exp: NUM { $$ = newnum($1); }
 #include "lex.yy.c"
 
 int main() {
-    yyin = fopen("problema.rei", "r");
+    yyin = fopen("problema.txt", "r");
     yyparse();
     fclose(yyin);
     return 0;

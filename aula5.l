@@ -1,6 +1,6 @@
 %{
 #include <string.h>
-#include "lion.tab.h"
+#include "aula5.tab.h"
 %}
 
 NUM [0-9]+\.?[0-9]*
