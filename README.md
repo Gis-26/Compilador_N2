@@ -178,9 +178,3 @@ O interpretador fornece mensagens de erro para:
 - Erros de sintaxe
 - Operações matemáticas inválidas (ex: raiz de número negativo)
 - Problemas de acesso a vetores
-
-
-## 👨‍💻 Autor
-
-[Seu Nome] - [seu.email@exemplo.com]
-
