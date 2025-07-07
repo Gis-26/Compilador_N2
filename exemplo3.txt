@@ -1,5 +1,20 @@
+// Declaração das variáveis
+float x
+float y
+float a
+float b
+float resultado
+float hipotenusa
+
+// Atribuição de valores às variáveis
+x = 10.0
+y = 5.0
+a = 3.0
+b = 4.0
+
 escreva("=== EXPRESSÕES COMPLEXAS ===")
-resultado= (x + y) * (a - b) / 2.0
+
+resultado = (x + y) * (a - b) / 2.0
 escreva("(x + y) * (a - b) / 2.0:")
 escreva(resultado)
 

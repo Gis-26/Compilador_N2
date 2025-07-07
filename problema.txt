@@ -31,7 +31,7 @@ se (salario <= 400.00) {
                 novoSalario = salario + reajuste
             } senao {
                 percentual = 4.0
-                reajuste = salario * 0.04;
+                reajuste = salario * 0.04
                 novoSalario = salario + reajuste
             }
         }
@@ -42,7 +42,7 @@ se (salario <= 400.00) {
 escreva("Novo salario: ")
 escreva(novoSalario)
 escreva("Reajuste ganho: ")
-escreva(reajuste);
+escreva(reajuste)
 escreva("Em percentual: ")
 escreva(percentual)
 escreva(" %")
