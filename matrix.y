@@ -408,7 +408,7 @@ exp: NUM { $$ = newnum($1); }
 #include "lex.yy.c"
 
 int main() {
-    yyin = fopen("exemplo4.mtrx", "r");
+    yyin = fopen("problema.mtrx", "r");
     yyparse();
     fclose(yyin);
     return 0;
