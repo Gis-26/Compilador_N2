@@ -9,7 +9,7 @@ Um interpretador simples desenvolvido em C usando Flex e Bison para análise lé
 - **Estruturas de controle**: `se`/`senao`, `enquanto`
 - **Operações**: Aritméticas, relacionais e lógicas
 - **Entrada/Saída**: `leia()` e `escreva()`
-- **Funções matemáticas**: `raiz()` (raiz quadrada)
+- **Funções matemáticas**: `raiz()`
 - **Comentários**: Suporte a comentários de linha `//`
 
 ## 📝 Sintaxe da Linguagem
@@ -31,7 +31,7 @@ float precos[5]
 ```
 idade = 25
 salario = 1500.50
-nome = "João Silva"
+nome = "Maria"
 numeros[0] = 100
 ```
 
@@ -55,7 +55,7 @@ enquanto (contador < 10) {
 ### Entrada e Saída
 ```
 leia(nome)
-escreva("Olá,")
+escreva("Olá mundo!")
 escreva(nome)
 ```
 
@@ -166,15 +166,5 @@ FIM
 ## 📋 Limitações
 
 - Não suporta funções definidas pelo usuário
-- Vetores limitados a uma dimensão
-- Não há verificação de tipos em tempo de compilação
-- Sem suporte a estruturas de dados complexas
+- Vetores só aceitão valores númericos
 - Strings têm tamanho limitado (50 caracteres)
-
-## 🐛 Tratamento de Erros
-
-O interpretador fornece mensagens de erro para:
-- Variáveis não declaradas
-- Erros de sintaxe
-- Operações matemáticas inválidas (ex: raiz de número negativo)
-- Problemas de acesso a vetores
