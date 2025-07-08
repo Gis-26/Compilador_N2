@@ -1,6 +1,6 @@
 float salario
 float percentual
-
+float reajuste
 percentual = 0.1
 
 escreva ("Digite o seu salario")
@@ -8,25 +8,33 @@ leia (salario)
 
 se (salario <= 400.00) {
     percentual = 0.15
+    reajuste = salario*percentual
     salario = salario + (salario*percentual)
 }
 
  senao {
         se ((salario <= 1200.00) && (salario > 800.00)) {
             percentual = 0.10
+            reajuste = salario*percentual
             salario = salario + (salario*percentual)
         } senao {
             se ((salario <= 2000.00) && (salario > 1200.00)) {
                 percentual = 0.07
+                reajuste = salario*percentual
                 salario = salario + (salario*percentual)
             } senao {
                 percentual = 0.04
+                reajuste = salario*percentual
                 salario = salario + (salario*percentual)
             }
         }
     }
-
+escreva ("Novo salario: ")
 escreva (salario)
-escreva (percentual)
+escreva ("Reajuste ganho: ")
+escreva (reajuste)
+escreva ("Em percentual: ")
+escreva (percentual*100)
+escreva ("%")
 
 FIM 

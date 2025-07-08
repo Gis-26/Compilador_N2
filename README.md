@@ -183,3 +183,4 @@ FIM
 
 - O vetor só aceita valores númericos
 - Ele não concatena a variável com a string (Quando for mostrar um resultado tem que colocar em saídas diferentes)
+- Não aceita função e nem matriz
