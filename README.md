@@ -192,18 +192,20 @@ FIM
 float salario
 float percentual
 float reajuste
-percentual = 0.1
 
-escreva ("Digite o seu salario")
+escreva ("Digite o seu salario: ")
 leia (salario)
 
 se (salario <= 400.00) {
     percentual = 0.15
     reajuste = salario*percentual
     salario = salario + (salario*percentual)
-}
-
- senao {
+}senao{
+    se((salario<=800.00)&&(salario>400.00)){
+       percentual = 0.12
+       reajuste = salario*percentual
+       salario = salario + (salario*percentual)
+    } senao {
         se ((salario <= 1200.00) && (salario > 800.00)) {
             percentual = 0.10
             reajuste = salario*percentual
@@ -220,6 +222,7 @@ se (salario <= 400.00) {
             }
         }
     }
+}
 escreva ("Novo salario: ")
 escreva (salario)
 escreva ("Reajuste ganho: ")
