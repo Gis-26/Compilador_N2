@@ -157,11 +157,16 @@ float a
 float b
 float resultado
 float hipotenusa
+int base
+int expoente
+int rest
 
 x = 10.0
 y = 5.0
 a = 3.0
 b = 4.0
+base = 2
+expoente = 3
 
 resultado = (x + y) * (a - b) / 2.0
 escreva("(x + y) * (a - b) / 2.0:")
@@ -171,17 +176,63 @@ hipotenusa = raiz((a * a) + (b * b))
 escreva("Hipotenusa:")
 escreva(hipotenusa)
 
+rest = base ^ expoente
+escreva ("2 ^ 3: ")
+escreva (rest)
+
 FIM
 ```
 
-## Problema
+## Problema: Aumento de salario (Beecrowd)
 
 <img width="1327" height="1128" alt="Image" src="https://github.com/user-attachments/assets/f0bdee4f-f734-4f3c-aee4-aad452dd53db" />
 
+
+```
+float salario
+float percentual
+float reajuste
+percentual = 0.1
+
+escreva ("Digite o seu salario")
+leia (salario)
+
+se (salario <= 400.00) {
+    percentual = 0.15
+    reajuste = salario*percentual
+    salario = salario + (salario*percentual)
+}
+
+ senao {
+        se ((salario <= 1200.00) && (salario > 800.00)) {
+            percentual = 0.10
+            reajuste = salario*percentual
+            salario = salario + (salario*percentual)
+        } senao {
+            se ((salario <= 2000.00) && (salario > 1200.00)) {
+                percentual = 0.07
+                reajuste = salario*percentual
+                salario = salario + (salario*percentual)
+            } senao {
+                percentual = 0.04
+                reajuste = salario*percentual
+                salario = salario + (salario*percentual)
+            }
+        }
+    }
+escreva ("Novo salario: ")
+escreva (salario)
+escreva ("Reajuste ganho: ")
+escreva (reajuste)
+escreva ("Em percentual: ")
+escreva (percentual*100)
+escreva ("%")
+
+FIM 
+```
 
 ## 📋 Limitações
 
 - O vetor só aceita valores númericos
 - Ele não concatena a variável com a string (Quando for mostrar um resultado tem que colocar em saídas diferentes)
 - Não aceita função e nem matriz
-- O usúario não consegue inserir números no vetor (Apenas atribuições)
