@@ -220,6 +220,7 @@ double eval(Ast *a) {
         case '-': v = eval(a->l) - eval(a->r); break;
         case '*': v = eval(a->l) * eval(a->r); break;
         case '/': v = eval(a->l) / eval(a->r); break;
+        case '^': v = pow(eval(a->l), eval(a->r)); break; 
         case 'M': v = -eval(a->l); break;
         case '1': v = (eval(a->l) > eval(a->r)) ? 1 : 0; break;
         case '2': v = (eval(a->l) < eval(a->r)) ? 1 : 0; break;
@@ -339,7 +340,7 @@ void yyerror(char *s) { fprintf(stderr, "Erro sintatico: %s\n", s); }
 %token <flo>   NUM
 %token <str>   VARS
 %token <str>   STRING_LITERAL
-%token         FIM IF ELSE WHILE PRINT SCAN INT FLOAT STRING INICIO RAIZ 
+%token         FIM IF ELSE WHILE PRINT SCAN INT FLOAT STRING RAIZ 
 %token <fn>    CMP OR_OP AND_OP 
 
 %right '='
@@ -348,6 +349,7 @@ void yyerror(char *s) { fprintf(stderr, "Erro sintatico: %s\n", s); }
 %left CMP 
 %left '+' '-'
 %left '*' '/'
+%right '^'
 %right NEG
 
 %type <a> exp list stmt print_arg
@@ -375,7 +377,6 @@ stmt: VARS '=' exp { $$ = newasgn($1, $3); }
     | IF '(' exp ')' '{' list '}' %prec IFX { $$ = newflow('I', $3, $6, NULL); }
     | IF '(' exp ')' '{' list '}' ELSE '{' list '}' { $$ = newflow('I', $3, $6, $10); }
     | WHILE '(' exp ')' '{' list '}' { $$ = newflow('W', $3, $6, NULL); }
-    | ';' { $$ = NULL; }
     ;
 
 print_arg: exp             { $$ = $1; }
@@ -393,6 +394,7 @@ exp: NUM { $$ = newnum($1); }
     | exp '-' exp { $$ = newast('-', $1, $3); }
     | exp '*' exp { $$ = newast('*', $1, $3); }
     | exp '/' exp { $$ = newast('/', $1, $3); }
+    | exp '^' exp { $$ = newast('^', $1, $3); } 
     | exp CMP exp { $$ = newcmp($2, $1, $3); }
     | exp OR_OP exp { $$ = newast($2, $1, $3); }  
     | exp AND_OP exp { $$ = newast($2, $1, $3); }
@@ -406,7 +408,7 @@ exp: NUM { $$ = newnum($1); }
 #include "lex.yy.c"
 
 int main() {
-    yyin = fopen("problema.txt", "r");
+    yyin = fopen("exemplo3.mtrx", "r");
     yyparse();
     fclose(yyin);
     return 0;

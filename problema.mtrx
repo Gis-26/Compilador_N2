@@ -1,0 +1,32 @@
+float salario
+float percentual
+
+percentual = 0.1
+
+escreva ("Digite o seu salario")
+leia (salario)
+
+se (salario <= 400.00) {
+    percentual = 0.15
+    salario = salario + (salario*percentual)
+}
+
+ senao {
+        se ((salario <= 1200.00) && (salario > 800.00)) {
+            percentual = 0.10
+            salario = salario + (salario*percentual)
+        } senao {
+            se ((salario <= 2000.00) && (salario > 1200.00)) {
+                percentual = 0.07
+                salario = salario + (salario*percentual)
+            } senao {
+                percentual = 0.04
+                salario = salario + (salario*percentual)
+            }
+        }
+    }
+
+escreva (salario)
+escreva (percentual)
+
+FIM 

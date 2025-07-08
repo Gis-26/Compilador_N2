@@ -1,6 +1,6 @@
 %{
 #include <string.h>
-#include "aula5.tab.h"
+#include "matrix.tab.h"
 %}
 
 NUM [0-9]+\.?[0-9]*
@@ -15,7 +15,6 @@ INT "int"
 FLOAT "float"
 STRING "string"
 STRING_LITERAL \"[^"]*\" 
-INICIO "INICIO"
 RAIZ "raiz" 
 
 %%
@@ -30,7 +29,6 @@ RAIZ "raiz"
 {INT} {return INT;}
 {FLOAT} {return FLOAT;}
 {STRING} {return STRING;}
-{INICIO} {return INICIO;}
 {RAIZ} {return RAIZ;}
 
 {VARS} {
@@ -49,7 +47,7 @@ RAIZ "raiz"
     return NUM;
 }
 
-[-+()=/*^{};\[\]] {return *yytext;}
+[-+()=/*^{}\[\]] {return *yytext;}
 
 ">" {yylval.fn = 1; return CMP; }
 "<" {yylval.fn = 2; return CMP; }

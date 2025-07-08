@@ -1,16 +1,16 @@
-# Mini compilador (interpretador)
+# Compilador Matriz
 
-Um interpretador simples desenvolvido em C usando Flex e Bison para análise léxica e sintática.
+O Compilador Matriz é um mini compilador feito em C, usando Flex e Bison, como parte da disciplina de Compiladores. Ele foi criado para processar programas escritos em uma linguagem simples, com a extensão .mtrx.
 
-## 🚀 Características
+## Características
 
-- **Tipos de dados**: `int`, `float`, `string`
+- **Tipos de variáveis**: `int`, `float`, `string`
 - **Estruturas de dados**: Vetores unidimensionais
 - **Estruturas de controle**: `se`/`senao`, `enquanto`
 - **Operações**: Aritméticas, relacionais e lógicas
 - **Entrada/Saída**: `leia()` e `escreva()`
 - **Funções matemáticas**: `raiz()`
-- **Comentários**: Suporte a comentários de linha `//`
+- **Comentários**: Comentários de linha `//`
 
 ## 📝 Sintaxe da Linguagem
 
@@ -29,18 +29,23 @@ float precos[5]
 
 ### Atribuição
 ```
-idade = 25
-salario = 1500.50
+num_int = 4
+num_float = 14.67
 nome = "Maria"
-numeros[0] = 100
+vet_num[0] = 7
 ```
 
 ### Estruturas Condicionais
 ```
-se (idade >= 18) {
-    escreva("Maior de idade")
-} senao {
-    escreva("Menor de idade")
+se (num_int > 0) {
+    escreva("O número é positivo")
+} senao{
+    escreva("O número é negativo")
+se{
+
+}senao {
+    escreva("O número é zero")
+}
 }
 ```
 
@@ -66,6 +71,7 @@ escreva(nome)
 - `-` (subtração)
 - `*` (multiplicação)
 - `/` (divisão)
+- `^` (exponeciação)
 
 #### Relacionais
 - `>` (maior que)
@@ -86,8 +92,8 @@ resultado = raiz(16)  // Raiz quadrada
 
 ### Comentários
 ```
-// Este é um comentário de linha
-int x  // Comentário no final da linha
+// Comentário de linha
+int x  // Comentário no final do código
 ```
 
 ## 📚 Exemplos
@@ -145,16 +151,26 @@ FIM
 
 ### Exemplo 3: Cálculos Matemáticos
 ```
+float x
+float y
 float a
 float b
+float resultado
 float hipotenusa
 
+x = 10.0
+y = 5.0
 a = 3.0
 b = 4.0
+
+resultado = (x + y) * (a - b) / 2.0
+escreva("(x + y) * (a - b) / 2.0:")
+escreva(resultado)
 
 hipotenusa = raiz((a * a) + (b * b))
 escreva("Hipotenusa:")
 escreva(hipotenusa)
+
 FIM
 ```
 
@@ -165,6 +181,5 @@ FIM
 
 ## 📋 Limitações
 
-- Não suporta funções definidas pelo usuário
-- Vetores só aceitão valores númericos
-- Strings têm tamanho limitado (50 caracteres)
+- O vetor só aceita valores númericos
+- Ele não concatena a variável com a string (Quando for mostrar um resultado tem que colocar em saídas diferentes)

@@ -1,8 +1,10 @@
-all: aula5.l aula5.y
-	flex aula5.l
-	bison -d aula5.y
-	gcc aula5.tab.c -o analisador -lm
-	./analisador
+#Compilar o codigo e executar
+all: matrix.l matrix.y
+	flex matrix.l
+	bison -d matrix.y
+	gcc matrix.tab.c -o Matrix -lm
+	./Matrix
 
+# excluir os arquivos compilados
 clean:
-	rm -f analisador lex.yy.c aula5.tab.c aula5.tab.h
+	rm -f Matrix lex.yy.c matrix.tab.c matrix.tab.h
